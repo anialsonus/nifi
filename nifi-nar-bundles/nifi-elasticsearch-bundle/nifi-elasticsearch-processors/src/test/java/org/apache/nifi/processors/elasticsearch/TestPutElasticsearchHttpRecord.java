@@ -578,17 +578,32 @@ public class TestPutElasticsearchHttpRecord {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() {
+    public void testPutElasticSearchBasic() throws InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+        MockRecordParser recordReader = new MockRecordParser();
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("code", RecordFieldType.INT);
+        recordReader.addSchemaField("date", RecordFieldType.DATE);
+        recordReader.addSchemaField("time", RecordFieldType.TIME);
+        recordReader.addSchemaField("ts",RecordFieldType.TIMESTAMP);
+        recordReader.addSchemaField("routing",RecordFieldType.STRING);
 
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
+        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH,"/routing");
         runner.assertValid();
+        Date date = new Date(new java.util.Date().getTime());
+        Time time = new Time(System.currentTimeMillis());
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        recordReader.addRecord(0,"rec",100,date,time,timestamp,"user_0");
 
         runner.enqueue(new byte[0], new HashMap<String, String>() {{
             put("doc_id", "28039652140");
@@ -604,7 +619,6 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
     public void testPutElasticSearchBatch() throws IOException, InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
@@ -630,7 +644,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.assertValid();
 
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 1; i < 101; i++) {
             Date date = new Date(new java.util.Date().getTime());
             Time time = new Time(System.currentTimeMillis());
             Timestamp timestamp = new Timestamp(System.currentTimeMillis());
