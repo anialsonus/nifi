@@ -605,25 +605,42 @@ public class TestPutElasticsearchHttpRecord {
 
     @Test
     @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws IOException {
+    public void testPutElasticSearchBatch() throws IOException, InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
 
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+        MockRecordParser recordReader = new MockRecordParser();
+        recordReader.addSchemaField("id", RecordFieldType.INT);
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("code", RecordFieldType.INT);
+        recordReader.addSchemaField("date", RecordFieldType.DATE);
+        recordReader.addSchemaField("time", RecordFieldType.TIME);
+        recordReader.addSchemaField("ts",RecordFieldType.TIMESTAMP);
+        recordReader.addSchemaField("routing",RecordFieldType.STRING);
+
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
+        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH,"/routing");
         runner.assertValid();
 
+
         for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
+            Date date = new Date(new java.util.Date().getTime());
+            Time time = new Time(System.currentTimeMillis());
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+            recordReader.addRecord(i,"rec"+i,100+i,date,time,timestamp,"user_"+i);
+            String newStrId = Integer.toString(i);
             runner.enqueue(new byte[0], new HashMap<String, String>() {{
                 put("doc_id", newStrId);
             }});
+            runner.run(1,true,true);
         }
-        runner.run();
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 100);
     }
 
