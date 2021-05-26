@@ -16,37 +16,30 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import okhttp3.*;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.*;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutElasticsearchHttp {
 
@@ -73,9 +66,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -83,6 +78,7 @@ public class TestPutElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("doc_routing", "new_user0");
     }
 
     @Test
@@ -94,9 +90,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "Update");
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -104,6 +102,7 @@ public class TestPutElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("doc_routing", "new_user0");
     }
 
     @Test
@@ -115,9 +114,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "DELETE");
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -125,6 +126,7 @@ public class TestPutElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("doc_routing", "new_user0");
     }
 
     @Test
@@ -136,6 +138,7 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
         runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
         runner.assertValid();
 
@@ -144,6 +147,7 @@ public class TestPutElasticsearchHttp {
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -151,6 +155,7 @@ public class TestPutElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("doc_routing", "new_user0");
     }
 
     @Test
@@ -162,9 +167,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "${no.attr}");
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -172,6 +179,7 @@ public class TestPutElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_FAILURE).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("doc_routing", "new_user0");
     }
 
     @Test
@@ -202,9 +210,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
@@ -213,6 +223,7 @@ public class TestPutElasticsearchHttp {
         processor.setStatus(500, "Should retry");
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_RETRY, 1);
@@ -228,9 +239,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
@@ -244,6 +257,7 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "2");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE,"doc_routing");
 
         runner.enqueue(docExample);
         runner.enqueue(docExample);
@@ -259,15 +273,17 @@ public class TestPutElasticsearchHttp {
     public void testPutElasticsearchOnTriggerWithIndexFromAttribute() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false));
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttp.INDEX, "${i}");
+        runner.setProperty(PutElasticsearchHttp.INDEX, "${index}");
         runner.setProperty(PutElasticsearchHttp.TYPE, "${type}");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652144");
-            put("i", "doc");
+            put("index", "doc");
             put("type", "status");
+            put("doc_routing", "new_user");
         }});
         runner.run(1, true, true);
 
@@ -280,6 +296,7 @@ public class TestPutElasticsearchHttp {
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652144");
             put("type", "status");
+            put("doc_routing", "new_user");
         }});
         runner.run(1, true, true);
 
@@ -300,12 +317,15 @@ public class TestPutElasticsearchHttp {
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
         runner.assertValid();
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
+        runner.assertValid();
 
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "index_fail");
         runner.assertValid();
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -325,12 +345,14 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
 
         // Set dynamic property, to be added to the URL as a query parameter
         runner.setProperty("pipeline", "my-pipeline");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
 
@@ -350,9 +372,11 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_attribute");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
+            put("doc_routing", "new_user0");
         }});
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
@@ -404,7 +428,7 @@ public class TestPutElasticsearchHttp {
                         sb.append("\", \"items\": [");
                         if (responseHasFailures) {
                             // This case is for a status code of 200 for the bulk response itself, but with an error (of 400) inside
-                            sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":\"400\",");
+                            sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"routing\":\"new_user\",\"status\":\"400\",");
                             if(resultField != null) {
                                 sb.append("\"result\":{\"not_found\",");
                             } else {
@@ -413,7 +437,7 @@ public class TestPutElasticsearchHttp {
                             sb.append("\"caused_by\":{\"type\":\"json_parse_exception\",\"reason\":\"Unexpected end-of-input in VALUE_STRING\\n at ");
                             sb.append("[Source: org.elasticsearch.common.io.stream.InputStreamStreamInput@1a2e3ac4; line: 1, column: 39]\"}}}},");
                         }
-                        sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":");
+                        sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"routing\":\"new_user\",\"status\":");
                         sb.append(statusCode);
                         sb.append(",\"_source\":{\"text\": \"This is a test document\"}}}");
 
@@ -452,52 +476,82 @@ public class TestPutElasticsearchHttp {
     /**
      * Tests basic ES functionality against a local or test ES cluster
      */
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
 
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
-        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
-        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
-        runner.assertValid();
+    @Nested
+    static class TestPutElasticsearchHttpIntegration extends ElasticsearchDockerInitializer{
+        static TestRunner runner;
 
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws IOException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "100");
-        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
-        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
-        runner.assertValid();
-
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            runner.enqueue(docExample, new HashMap<String, String>() {{
-                put("doc_id", newStrId);
-            }});
+        @BeforeEach
+        public void setup() throws IOException {
+            runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+            docExample = IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json"), StandardCharsets.UTF_8).getBytes();
         }
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 100);
+
+        @BeforeAll
+        public static void startElasticSearchDockerContainer(){
+            elasticsearchDockerComposeContainer.start();
+        }
+
+        @AfterEach
+        public void teardown(){
+            runner = null;
+        }
+
+        @AfterAll
+        public static void stopElasticSearchDockerContainer(){
+            elasticsearchDockerComposeContainer.close();
+        }
+
+        @org.junit.jupiter.api.Test
+        public void testPutElasticSearchBasic() {
+            System.out.println("Starting test " + new Object() {
+            }.getClass().getEnclosingMethod().getName());
+            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+            runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+            runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+            runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+            runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+            runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
+            runner.assertValid();
+
+            runner.enqueue(docExample, new HashMap<String, String>() {{
+                put("doc_id", "28039652140");
+                put("doc_routing", "new_user");
+            }});
+
+            runner.enqueue(docExample);
+            runner.run(1, true, true);
+            runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+        }
+
+        @org.junit.jupiter.api.Test
+        public void testPutElasticSearchBatch() throws IOException {
+            System.out.println("Starting test " + new Object() {
+            }.getClass().getEnclosingMethod().getName());
+            final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+
+            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+            runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+            runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "100");
+            runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+            runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+            runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
+
+            runner.assertValid();
+
+            for (int i = 0; i < 100; i++) {
+                long newId = 28039652140L + i;
+                final String newStrId = Long.toString(newId);
+                int finalI = i;
+                runner.enqueue(docExample, new HashMap<String, String>() {{
+                    put("doc_id", newStrId);
+                    put("doc_routing", "new_user" + finalI);
+                }});
+            }
+            runner.run();
+            runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 100);
+        }
     }
 
     @Test
@@ -535,6 +589,7 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "new_user");
 
         runner.setProperty(PutElasticsearchHttp.PROXY_HOST, "localhost");
         runner.setProperty(PutElasticsearchHttp.PROXY_PORT, "3328");
@@ -563,6 +618,7 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+        runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "new_user");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
