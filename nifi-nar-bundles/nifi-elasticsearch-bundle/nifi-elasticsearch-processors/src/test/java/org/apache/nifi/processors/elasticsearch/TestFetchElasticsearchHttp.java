@@ -413,7 +413,6 @@ public class TestFetchElasticsearchHttp {
         public void startElasticSearchDockerContainer() throws IOException {
             elasticsearchDockerComposeContainer.start();
             TestPutElasticsearchHttp.TestPutElasticsearchHttpIntegration testPutElasticsearchHttpIntegration = new TestPutElasticsearchHttp().getPutElasticSearchHttpProcessor();
-            testPutElasticsearchHttpIntegration.testPutElasticSearchBasic();
             testPutElasticsearchHttpIntegration.testPutElasticSearchBatch();
         }
 
