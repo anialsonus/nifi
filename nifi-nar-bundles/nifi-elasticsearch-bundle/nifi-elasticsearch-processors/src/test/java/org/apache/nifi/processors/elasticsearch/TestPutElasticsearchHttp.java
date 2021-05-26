@@ -24,11 +24,13 @@ import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitia
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -48,8 +50,7 @@ public class TestPutElasticsearchHttp {
 
     @Before
     public void once() throws IOException {
-        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-        docExample = IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json"), StandardCharsets.UTF_8).getBytes();
+        TestPutElasticsearchHttp.getDocExample();
     }
 
     @After
@@ -383,6 +384,15 @@ public class TestPutElasticsearchHttp {
         runner.clearTransferState();
     }
 
+    public TestPutElasticsearchHttpIntegration getPutElasticSearchHttpProcessor(){
+        return new TestPutElasticsearchHttpIntegration();
+    }
+
+    static byte[] getDocExample() throws IOException {
+        ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+        return IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json"), StandardCharsets.UTF_8).getBytes();
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -476,20 +486,12 @@ public class TestPutElasticsearchHttp {
     /**
      * Tests basic ES functionality against a local or test ES cluster
      */
-
     @Nested
-    static class TestPutElasticsearchHttpIntegration extends ElasticsearchDockerInitializer{
-        static TestRunner runner;
-
-        @BeforeEach
-        public void setup() throws IOException {
-            runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
-            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-            docExample = IOUtils.toString(classloader.getResourceAsStream("DocumentExample.json"), StandardCharsets.UTF_8).getBytes();
-        }
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+      public class TestPutElasticsearchHttpIntegration extends ElasticsearchDockerInitializer{
 
         @BeforeAll
-        public static void startElasticSearchDockerContainer(){
+        public void startElasticSearchDockerContainer(){
             elasticsearchDockerComposeContainer.start();
         }
 
@@ -499,14 +501,16 @@ public class TestPutElasticsearchHttp {
         }
 
         @AfterAll
-        public static void stopElasticSearchDockerContainer(){
+        public void stopElasticSearchDockerContainer(){
             elasticsearchDockerComposeContainer.close();
         }
 
         @org.junit.jupiter.api.Test
-        public void testPutElasticSearchBasic() {
+        public void testPutElasticSearchBasic() throws IOException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
+            TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+            byte[] docExample = TestPutElasticsearchHttp.getDocExample();
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
             runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
             runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
@@ -529,8 +533,8 @@ public class TestPutElasticsearchHttp {
         public void testPutElasticSearchBatch() throws IOException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
-
+            TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+            byte[] docExample = TestPutElasticsearchHttp.getDocExample();
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
             runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
             runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "100");
@@ -608,7 +612,6 @@ public class TestPutElasticsearchHttp {
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
     }
-
     @Test(expected = AssertionError.class)
     public void testPutElasticSearchBadHostInEL() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures

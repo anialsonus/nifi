@@ -31,11 +31,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Nested;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -585,11 +583,11 @@ public class TestPutElasticsearchHttpRecord {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Nested
-    static class TestPutElasticsearchHttpRecordIntegration extends ElasticsearchDockerInitializer{
-        private TestRunner runner;
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class TestPutElasticsearchHttpRecordIntegration extends ElasticsearchDockerInitializer{
 
         @BeforeAll
-        public static void startElasticSearchDockerContainer(){
+        public void startElasticSearchDockerContainer(){
             elasticsearchDockerComposeContainer.start();
         }
 
@@ -599,7 +597,7 @@ public class TestPutElasticsearchHttpRecord {
         }
 
         @AfterAll
-        public static void stopElasticSearchDockerContainer(){
+        public void stopElasticSearchDockerContainer(){
             elasticsearchDockerComposeContainer.close();
         }
 

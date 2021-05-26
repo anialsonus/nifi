@@ -30,6 +30,7 @@ import java.util.HashMap;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -38,6 +39,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -398,52 +400,78 @@ public class TestFetchElasticsearchHttp {
     /**
      * Tests basic ES functionality against a local or test ES cluster
      */
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBasic() {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-
-        //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBatch() throws IOException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-
-        //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.assertValid();
-
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            runner.enqueue(docExample, new HashMap<String, String>() {{
-                put("doc_id", newStrId);
-            }});
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class TestFetchElasticsearchHttpIntegration extends ElasticsearchDockerInitializer {
+        @BeforeEach
+        public void setUp() throws IOException {
+            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+            docExample = classloader.getResourceAsStream("DocumentExample.json");
         }
-        runner.run(100);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 100);
+
+        @BeforeAll
+        public void startElasticSearchDockerContainer() throws IOException {
+            elasticsearchDockerComposeContainer.start();
+            TestPutElasticsearchHttp.TestPutElasticsearchHttpIntegration testPutElasticsearchHttpIntegration = new TestPutElasticsearchHttp().getPutElasticSearchHttpProcessor();
+            testPutElasticsearchHttpIntegration.testPutElasticSearchBasic();
+            testPutElasticsearchHttpIntegration.testPutElasticSearchBatch();
+        }
+
+        @AfterEach
+        public void teardown() {
+            runner = null;
+        }
+
+        @AfterAll
+        public void stopElasticSearchDockerContainer(){
+            elasticsearchDockerComposeContainer.close();
+        }
+
+        @org.junit.jupiter.api.Test
+        public void testFetchElasticsearchBasic() {
+            System.out.println("Starting test " + new Object() {
+            }.getClass().getEnclosingMethod().getName());
+            TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+
+            //Local Cluster - Mac pulled from brew
+            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+            runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+            runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+            runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+            runner.assertValid();
+
+            runner.enqueue(docExample, new HashMap<String, String>() {{
+                put("doc_id", "28039652140");
+            }});
+
+            runner.enqueue(docExample);
+            runner.run(1, true, true);
+            runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+        }
+
+        @org.junit.jupiter.api.Test
+        public void testFetchElasticsearchBatch() throws IOException {
+            System.out.println("Starting test " + new Object() {
+            }.getClass().getEnclosingMethod().getName());
+            TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+
+            //Local Cluster - Mac pulled from brew
+            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+            runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+            runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+            runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+            runner.assertValid();
+
+            for (int i = 0; i < 100; i++) {
+                long newId = 28039652140L + i;
+                final String newStrId = Long.toString(newId);
+                runner.enqueue(docExample, new HashMap<String, String>() {{
+                    put("doc_id", newStrId);
+                }});
+            }
+            runner.run(100);
+            runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 100);
+        }
     }
 
     @Test
