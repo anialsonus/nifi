@@ -1,7 +1,7 @@
-version: '2.1'
+version: '2.2'
 services:
   es01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
     environment:
       - node.name=es01
       - cluster.name=es-docker-cluster
@@ -20,7 +20,7 @@ services:
     networks:
       - elastic
   es02:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
     environment:
       - node.name=es02
       - cluster.name=es-docker-cluster
@@ -29,7 +29,8 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     depends_on:
-      - es01
+      es01:
+        condition: service_started
     ulimits:
       memlock:
         soft: -1
@@ -39,7 +40,7 @@ services:
     networks:
       - elastic
   es03:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
     environment:
       - node.name=es03
       - cluster.name=es-docker-cluster
@@ -48,7 +49,8 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     depends_on:
-      - es01
+      es01:
+        condition: service_started
     ulimits:
       memlock:
         soft: -1
