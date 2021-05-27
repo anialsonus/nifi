@@ -430,7 +430,7 @@ public class TestFetchElasticsearchHttp {
         public void testFetchElasticsearchBasic() {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+            final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
 
             //Local Cluster - Mac pulled from brew
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
@@ -452,7 +452,7 @@ public class TestFetchElasticsearchHttp {
         public void testFetchElasticsearchBatch() throws IOException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+            final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
 
             //Local Cluster - Mac pulled from brew
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");

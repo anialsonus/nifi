@@ -50,7 +50,7 @@ public class TestPutElasticsearchHttp {
 
     @Before
     public void once() throws IOException {
-        TestPutElasticsearchHttp.getDocExample();
+        docExample = TestPutElasticsearchHttp.getDocExample();
     }
 
     @After
@@ -509,7 +509,7 @@ public class TestPutElasticsearchHttp {
         public void testPutElasticSearchBasic() throws IOException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+            final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
             byte[] docExample = TestPutElasticsearchHttp.getDocExample();
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
             runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
@@ -533,7 +533,7 @@ public class TestPutElasticsearchHttp {
         public void testPutElasticSearchBatch() throws IOException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
+            final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
             byte[] docExample = TestPutElasticsearchHttp.getDocExample();
             runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
             runner.setProperty(PutElasticsearchHttp.INDEX, "doc");

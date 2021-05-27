@@ -605,7 +605,7 @@ public class TestPutElasticsearchHttpRecord {
         public void testPutElasticSearchBasic() throws InitializationException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+            final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
             MockRecordParser recordReader = new MockRecordParser();
             recordReader.addSchemaField("id", RecordFieldType.INT);
             recordReader.addSchemaField("name", RecordFieldType.STRING);
@@ -646,7 +646,7 @@ public class TestPutElasticsearchHttpRecord {
         public void testPutElasticSearchBatch() throws IOException, InitializationException {
             System.out.println("Starting test " + new Object() {
             }.getClass().getEnclosingMethod().getName());
-            runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+            final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
             MockRecordParser recordReader = new MockRecordParser();
             recordReader.addSchemaField("id", RecordFieldType.INT);
             recordReader.addSchemaField("name", RecordFieldType.STRING);
