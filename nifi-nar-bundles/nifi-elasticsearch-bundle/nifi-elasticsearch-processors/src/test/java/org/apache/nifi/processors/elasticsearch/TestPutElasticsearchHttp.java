@@ -28,7 +28,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -384,9 +383,6 @@ public class TestPutElasticsearchHttp {
         runner.clearTransferState();
     }
 
-    public TestPutElasticsearchHttpIntegration getPutElasticSearchHttpProcessor(){
-        return new TestPutElasticsearchHttpIntegration();
-    }
 
     static byte[] getDocExample() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
@@ -486,77 +482,6 @@ public class TestPutElasticsearchHttp {
     /**
      * Tests basic ES functionality against a local or test ES cluster
      */
-    @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-      public class TestPutElasticsearchHttpIntegration extends ElasticsearchDockerInitializer{
-
-        @BeforeAll
-        public void startElasticSearchDockerContainer(){
-            elasticsearchDockerComposeContainer.start();
-        }
-
-        @AfterEach
-        public void teardown(){
-            runner = null;
-        }
-
-        @AfterAll
-        public void stopElasticSearchDockerContainer(){
-            elasticsearchDockerComposeContainer.close();
-        }
-
-        @org.junit.jupiter.api.Test
-        public void testPutElasticSearchBasic() throws IOException {
-            System.out.println("Starting test " + new Object() {
-            }.getClass().getEnclosingMethod().getName());
-            final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
-            byte[] docExample = TestPutElasticsearchHttp.getDocExample();
-            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-            runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
-            runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
-            runner.setProperty(PutElasticsearchHttp.TYPE, "status");
-            runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
-            runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
-            runner.assertValid();
-
-            runner.enqueue(docExample, new HashMap<String, String>() {{
-                put("doc_id", "28039652140");
-                put("doc_routing", "new_user");
-            }});
-
-            runner.enqueue(docExample);
-            runner.run(1, true, true);
-            runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
-        }
-
-        @org.junit.jupiter.api.Test
-        public void testPutElasticSearchBatch() throws IOException {
-            System.out.println("Starting test " + new Object() {
-            }.getClass().getEnclosingMethod().getName());
-            final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
-            byte[] docExample = TestPutElasticsearchHttp.getDocExample();
-            runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-            runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
-            runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "100");
-            runner.setProperty(PutElasticsearchHttp.TYPE, "status");
-            runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
-            runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "doc_routing");
-
-            runner.assertValid();
-
-            for (int i = 0; i < 100; i++) {
-                long newId = 28039652140L + i;
-                final String newStrId = Long.toString(newId);
-                int finalI = i;
-                runner.enqueue(docExample, new HashMap<String, String>() {{
-                    put("doc_id", newStrId);
-                    put("doc_routing", "new_user" + finalI);
-                }});
-            }
-            runner.run();
-            runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 100);
-        }
-    }
 
     @Test
     @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
@@ -612,6 +537,7 @@ public class TestPutElasticsearchHttp {
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
     }
+
     @Test(expected = AssertionError.class)
     public void testPutElasticSearchBadHostInEL() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
