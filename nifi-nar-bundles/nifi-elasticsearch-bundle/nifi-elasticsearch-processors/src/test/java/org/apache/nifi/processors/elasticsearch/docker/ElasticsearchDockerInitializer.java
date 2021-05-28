@@ -4,7 +4,7 @@ import org.testcontainers.containers.DockerComposeContainer;
 
 import java.io.File;
 
-public abstract class ElasticsearchDockerInitializer {
+public class ElasticsearchDockerInitializer {
 
     public static final DockerComposeContainer elasticsearchDockerComposeContainer;
 
