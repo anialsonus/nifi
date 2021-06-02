@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer {
     private TestRunner runner;
     private static byte[] docExample;
+    private String esUrl = "http://127.0.0.1:"+elasticsearchDockerComposeContainer.getServicePort("es01",9200);
 
     @Before
     public void once() throws IOException {
@@ -61,7 +62,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, esUrl);
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
@@ -102,7 +103,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.ES_URL, esUrl);
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
@@ -129,7 +130,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         }.getClass().getEnclosingMethod().getName());
         final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
         byte[] docExample = TestPutElasticsearchHttp.getDocExample();
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, esUrl);
         runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
@@ -153,7 +154,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         }.getClass().getEnclosingMethod().getName());
         final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
         byte[] docExample = TestPutElasticsearchHttp.getDocExample();
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, esUrl);
         runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "100");
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
@@ -181,7 +182,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         testPutElasticSearchHttpBasic();
         //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, esUrl);
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
         runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
@@ -203,7 +204,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         testPutElasticSearchHttpBatch();
         //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, esUrl);
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
         runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
