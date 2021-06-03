@@ -61,7 +61,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 * JDK 1.8 (*ongoing work to enable NiFi to run on Java 9/10/11; see [NIFI-5174](https://issues.apache.org/jira/browse/NIFI-5174)*)
 * Apache Maven 3.1.1 or newer
 * Git Client (used during build process by 'bower' plugin)
-
+* Docker 20.10.6 or newer (used during nifi-elasticsearch-processors testing/packaging)
 ## Getting Started
 
 - Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
@@ -71,6 +71,13 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
 
 To build:
+- Due to target byte code version set to JDK 11 on all modules, it is highly recommended deploying
+  nifi source code using the settled JDK (in other case, running tests can cause the "java:warning: 
+  source release 11 requires target release 11" marked as error, which will not allow to run tests/
+  build modules). However, using JDK 11 can cause nifi-security-utils-api module build failure caused
+  by running tests which include asserting list of supported TLS protocols versions. To resolve this issue
+  it is  necessary to edit JDK 11 settings (conf/security/java.security) and remove from 
+  jdk.tls.disabledAlgorithms the following protocols: TLSv1, TLSv1.1.
 - Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
   modest development laptop that is a couple of years old, the latter build takes a bit under ten
   minutes. After a large amount of output you should eventually see a success message.
