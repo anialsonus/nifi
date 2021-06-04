@@ -14,10 +14,9 @@ public class ElasticsearchDockerInitializer {
         switch(type){
             case BASIC: break;
             case PROXY:
-                basicElasticsearchDockerComposeContainer.withExposedService("squid", 3228);
-                break;
-            case PROXY_WITH_AUTH:
-                basicElasticsearchDockerComposeContainer.withExposedService("squid", 3328);
+                basicElasticsearchDockerComposeContainer
+                .withExposedService("squid", 3228)
+                .withExposedService("squid_auth", 3328);
                 break;
         }
         return basicElasticsearchDockerComposeContainer;
@@ -31,9 +30,6 @@ public class ElasticsearchDockerInitializer {
                 break;
             case PROXY:
                 composeFile = new File("src/test/resources/proxy-squid/docker-compose-proxy.yml");
-                break;
-            case PROXY_WITH_AUTH:
-                composeFile = new File("src/test/resources/proxy-auth-squid/docker-compose-proxy.yml");
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + type);

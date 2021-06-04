@@ -9,7 +9,14 @@ services:
     volumes:
       - ./squid.conf:/etc/squid/squid.conf
     restart: always
-
+  squid_auth:
+    image: sameersbn/squid:3.5.27-2
+    networks:
+      - mynetwork
+    ports:
+      - 3328:3328
+    volumes:
+      - ./squid-auth.conf:/etc/squid/squid.conf
   es01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.13.1
     environment:
@@ -25,8 +32,6 @@ services:
         hard: -1
     volumes:
       - data01:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
     networks:
       mynetwork:
         ipv4_address: 172.18.0.2
