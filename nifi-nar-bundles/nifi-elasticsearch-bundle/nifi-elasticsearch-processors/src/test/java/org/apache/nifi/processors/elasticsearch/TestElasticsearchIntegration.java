@@ -1,5 +1,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.processors.elasticsearch.docker.DockerComposeContainerType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -9,6 +10,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.*;
+import org.testcontainers.containers.DockerComposeContainer;
 
 import java.io.IOException;
 import java.sql.Date;
@@ -23,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer {
     private TestRunner runner;
     private static byte[] docExample;
+    private static DockerComposeContainer elasticsearchDockerComposeContainer = ElasticsearchDockerInitializer.initiateElasticsearchDockerComposeContainer(DockerComposeContainerType.BASIC);
     private String esUrl = "http://127.0.0.1:"+elasticsearchDockerComposeContainer.getServicePort("es01",9200);
 
     @Before
@@ -220,5 +223,4 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.run(100);
         runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 100);
     }
-
 }
