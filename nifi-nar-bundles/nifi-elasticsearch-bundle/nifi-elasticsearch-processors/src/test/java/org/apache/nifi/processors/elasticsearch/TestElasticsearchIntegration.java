@@ -1,5 +1,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.processors.elasticsearch.docker.DockerContainerType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -20,11 +21,36 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer {
+public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer{
     private TestRunner runner;
     private static byte[] docExample;
-    private String esUrl = "http://127.0.0.1:9200";
-    private String esUrlProxy = "http://172.18.0.2:9200";
+    private static String esUrl;
+    private static String esUrlProxy;
+    private static String proxyPort;
+    private static String proxyAuthPort;
+
+    private static HashMap<DockerContainerType, Integer> servicesPorts;
+
+    @BeforeClass
+    public static void initializeContainers() throws IOException, InterruptedException {
+        servicesPorts = writeDockerComposeWithFreePorts();
+        esUrl = "http://127.0.0.1:" + servicesPorts.get(DockerContainerType.ES01);
+        System.out.println(esUrl);
+        esUrlProxy = "http://172.18.0.2:" + dockerElasticsearchPort;
+        proxyPort = servicesPorts.get(DockerContainerType.SQUID).toString();
+        proxyAuthPort = servicesPorts.get(DockerContainerType.SQUID_AUTH).toString();
+        logger.info("Preparing scripts for execution ...");
+        Thread.sleep(5000);
+        execScript(dockerStartScriptName);
+    }
+
+
+    @AfterClass
+    public static  void stopContainers() throws IOException, InterruptedException {
+        logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
+        execScript(dockerStopScriptName);
+    }
+
 
     @Before
     public void once() throws IOException {
@@ -35,18 +61,10 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     public void teardown() {
         runner = null;
     }
-    @BeforeClass
-    public static void startElasticSearchDockerContainer(){
-        elasticsearchDockerComposeContainer.start();
-    }
-    @AfterClass
-    public static void stopElasticSearchDockerContainer(){
-        elasticsearchDockerComposeContainer.stop();
-        elasticsearchDockerComposeContainer.close();
-    }
+
     @Test
-    public void testPutElasticSearchHttpRecordBasic() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
+    public void testPutElasticSearchHttpRecordBasic() throws InitializationException, InterruptedException {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
         MockRecordParser recordReader = new MockRecordParser();
@@ -87,7 +105,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
     @Test
     public void testPutElasticSearchHttpRecordBatch() throws IOException, InitializationException {
-        System.out.println("Starting test " + new Object() {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
         MockRecordParser recordReader = new MockRecordParser();
@@ -125,7 +143,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     }
     @Test
     public void testPutElasticSearchHttpBasic() throws IOException {
-        System.out.println("Starting test " + new Object() {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
         byte[] docExample = TestPutElasticsearchHttp.getDocExample();
@@ -149,7 +167,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
     @Test
     public void testPutElasticSearchHttpBatch() throws IOException {
-        System.out.println("Starting test " + new Object() {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner  runner = TestRunners.newTestRunner(new PutElasticsearchHttp());
         byte[] docExample = TestPutElasticsearchHttp.getDocExample();
@@ -176,7 +194,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     }
     @Test
     public void testFetchElasticsearchBasic() throws IOException {
-        System.out.println("Starting test " + new Object() {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         testPutElasticSearchHttpBasic();
@@ -198,7 +216,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
     @Test
     public void testFetchElasticsearchBatch() throws IOException {
-        System.out.println("Starting test " + new Object() {
+        logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
         testPutElasticSearchHttpBatch();
@@ -231,7 +249,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
 
         runner.setProperty(PutElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, "3228");
+        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, proxyPort);
         runner.setProperty(PutElasticsearchHttp.ES_URL, esUrlProxy);
         runner.assertValid();
 
@@ -255,7 +273,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3228");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, proxyPort);
         runner.setProperty(FetchElasticsearchHttp.ES_URL, esUrlProxy);
 
         runner.assertValid();
@@ -281,7 +299,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.setProperty(PutElasticsearchHttp.ROUTING_ATTRIBUTE, "new_user");
 
         runner.setProperty(PutElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, "3328");
+        runner.setProperty(PutElasticsearchHttp.PROXY_PORT, proxyAuthPort);
         runner.setProperty(PutElasticsearchHttp.PROXY_USERNAME, "proxy-squid");
         runner.setProperty(PutElasticsearchHttp.PROXY_PASSWORD, "changeme");
         runner.setProperty(PutElasticsearchHttp.ES_URL, esUrlProxy);
@@ -309,7 +327,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3328");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, proxyAuthPort);
         runner.setProperty(FetchElasticsearchHttp.PROXY_USERNAME, "proxy-squid");
         runner.setProperty(FetchElasticsearchHttp.PROXY_PASSWORD, "changeme");
         runner.setProperty(FetchElasticsearchHttp.ES_URL, esUrlProxy);

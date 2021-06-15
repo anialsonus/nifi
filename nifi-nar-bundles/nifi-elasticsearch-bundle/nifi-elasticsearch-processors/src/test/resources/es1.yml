@@ -1,0 +1,37 @@
+#Cluster name
+cluster.name: elasticsearch-cluster
+ 
+ #Node name
+node.name: es-node1
+ 
+ #Set the bound IP address, you can make IPv4 or IPv6
+ #Bind any ip of this machine
+network.bind_host: 172.18.0.2
+ 
+ #Set the ip address of other nodes to interact with this node, if it is not set, it will automatically judge, the value must be a real ip address
+network.publish_host: 172.18.0.2
+ 
+ #Set the http port of the external service, the default is 9200
+http.port: 9200
+ 
+ #Set the tcp port between nodes, the default is 9300
+transport.tcp.port: 9300
+ 
+ #Whether to allow cross-domain REST requests
+http.cors.enabled: true
+ 
+ #Where does the REST request come from
+http.cors.allow-origin: "*"
+ #Initial master node
+cluster.initial_master_nodes: es-node1
+ 
+ #Node role settings
+node.master: true 
+node.data: true  
+ 
+ #Cluster node list
+discovery.zen.ping.unicast.hosts: ["172.18.0.2","172.18.0.3"]
+ 
+ #The cluster has been running normally, there is a minimum number of nodes that become master nodes, the default is 1
+#(total number of master-eligible nodes / 2 + 1)
+discovery.zen.minimum_master_nodes: 1
