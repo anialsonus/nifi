@@ -1,6 +1,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
-import org.apache.nifi.processors.elasticsearch.docker.DockerContainerType;
+import org.apache.nifi.processors.elasticsearch.docker.DockerServicePortType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -29,26 +29,21 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     private static String proxyPort;
     private static String proxyAuthPort;
 
-    private static HashMap<DockerContainerType, Integer> servicesPorts;
-
     @BeforeClass
     public static void initializeContainers() throws IOException, InterruptedException {
-        servicesPorts = writeDockerComposeWithFreePorts();
-        esUrl = "http://127.0.0.1:" + servicesPorts.get(DockerContainerType.ES01);
-        System.out.println(esUrl);
-        esUrlProxy = "http://172.18.0.2:" + dockerElasticsearchPort;
-        proxyPort = servicesPorts.get(DockerContainerType.SQUID).toString();
-        proxyAuthPort = servicesPorts.get(DockerContainerType.SQUID_AUTH).toString();
-        logger.info("Preparing scripts for execution ...");
-        Thread.sleep(5000);
-        execScript(dockerStartScriptName);
+    HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
+    esUrl = "http://127.0.0.1:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
+    esUrlProxy = "http://172.18.0.2:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP);
+    proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);
+    proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP);
+    startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts);
     }
 
 
     @AfterClass
     public static  void stopContainers() throws IOException, InterruptedException {
         logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
-        execScript(dockerStopScriptName);
+        stopElasticsearchSquidDocker();
     }
 
 
@@ -104,7 +99,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     }
 
     @Test
-    public void testPutElasticSearchHttpRecordBatch() throws IOException, InitializationException {
+    public void testPutElasticSearchHttpRecordBatch() throws InitializationException {
         logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());

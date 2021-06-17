@@ -1,115 +1,128 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 
-public class ElasticsearchDockerInitializer {
+ public class ElasticsearchDockerInitializer {
     protected static String resourcesFolderPath = "src/test/resources";
-    protected static String absolutePath = new File(resourcesFolderPath).getAbsolutePath();
+    protected static String resourcesFolderAbsolutePath = new File(resourcesFolderPath).getAbsolutePath();
     protected static String osName = System.getProperty("os.name");
-    protected static String dockerStartScriptName = absolutePath+"/start-docker."+getScriptExtension(osName);
-    protected static String dockerStopScriptName = absolutePath+"/stop-docker."+getScriptExtension(osName);
-    protected static String dockerElasticsearchPort = Integer.toString(9200);
+    protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker."+getScriptExtension(osName);
+    protected static String elasticsearchSquidDockerStopScriptPathString = resourcesFolderAbsolutePath +"/stop-docker."+getScriptExtension(osName);
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
+    protected static Set<PosixFilePermission> perms = new HashSet<>();
 
-
-    public static HashMap<DockerContainerType, Integer> writeDockerComposeWithFreePorts() throws IOException {
-        HashMap<DockerContainerType, Integer> servicesPorts = new HashMap<>();
-        DockerContainerType[] services = {DockerContainerType.SQUID,DockerContainerType.SQUID_AUTH, DockerContainerType.ES01,
-                DockerContainerType.ES01_TCP, DockerContainerType.ES02, DockerContainerType.ES02_TCP
-        };
-        Set<PosixFilePermission> perms = new HashSet<>();
+    static {
         perms.add(PosixFilePermission.OWNER_READ);
         perms.add(PosixFilePermission.OWNER_WRITE);
         perms.add(PosixFilePermission.OWNER_EXECUTE);
-        for (DockerContainerType service : services) {
+    }
+
+
+    protected static HashMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
+        HashMap<DockerServicePortType, String> servicesPorts = new HashMap<>();
+        DockerServicePortType[] elasticsearchSquidDockerServices = {DockerServicePortType.ES01_SP,  DockerServicePortType.ES02_SP,
+                DockerServicePortType.ES_CP, DockerServicePortType.SQUID_SP, DockerServicePortType.SQUID_AUTH_SP,
+                };
+        for (DockerServicePortType service : elasticsearchSquidDockerServices) {
             ServerSocket serverSocket = new ServerSocket(0);
-            servicesPorts.put(service, serverSocket.getLocalPort());
+            servicesPorts.put(service, Integer.toString(serverSocket.getLocalPort()));
+            serverSocket.close();
         }
-
-
-        String dockerStartShellScript ="docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 es_squid\n" +
-                "docker run -e ES_JAVA_OPTS=\"-Xms256m -Xmx256m\" -d " +
-                "-p "+servicesPorts.get(DockerContainerType.ES01)+":9200 " +
-                "-v "+absolutePath+"/es1.yml:/usr/share/elasticsearch/config/elasticsearch.yml  " +
-                "-v data01:/usr/share/elasticsearch/data --network=es_squid --ip 172.18.0.2 --name ES01 elasticsearch:7.4.2\n" +
-                "docker run -e ES_JAVA_OPTS=\"-Xms256m -Xmx256m\" -d " +
-                "-p "+servicesPorts.get(DockerContainerType.ES02)+":9200 " +
-                "-v "+absolutePath+"/es2.yml:/usr/share/elasticsearch/config/elasticsearch.yml  " +
-                "-v data02:/usr/share/elasticsearch/data --network=es_squid --ip 172.18.0.3 --name ES02 elasticsearch:7.4.2\n" +
-                "docker run --name SQUID -d --restart=always " +
-                "--publish "+servicesPorts.get(DockerContainerType.SQUID)+":3228 " +
-                "--volume "+absolutePath+"/squid.conf:/etc/squid/squid.conf  " +
-                "--volume /srv/docker/squid/cache:/var/spool/squid --network=es_squid sameersbn/squid:3.5.27-2\n" +
-                "docker run --name SQUID_AUTH -d --restart=always " +
-                "--publish "+servicesPorts.get(DockerContainerType.SQUID_AUTH)+":3328 " +
-                "--volume "+absolutePath+"/squid-auth.conf:/etc/squid/squid.conf  " +
-                "--volume /srv/docker/squid/cache:/var/spool/squid --network=es_squid sameersbn/squid:3.5.27-2";
-        writeFile(dockerStartScriptName,dockerStartShellScript);
-        Path dockerStartScriptPath = Paths.get(dockerStartScriptName);
-        Files.setPosixFilePermissions(dockerStartScriptPath, perms);
-        String dockerStopShellScript =
-                "docker stop ES01\n" +
-                "docker stop ES02\n" +
-                "docker stop SQUID\n" +
-                "docker stop SQUID_AUTH\n" +
-                "docker rm ES01\n" +
-                "docker rm ES02\n" +
-                "docker rm SQUID\n" +
-                "docker rm SQUID_AUTH\n" +
-                "docker network rm es_squid";
-        writeFile(dockerStopScriptName, dockerStopShellScript);
-        Path dockerStopScriptPath = Paths.get(dockerStopScriptName);
-        Files.setPosixFilePermissions(dockerStopScriptPath, perms);
         return servicesPorts;
     }
 
-    public static String getScriptExtension(String osName){
+    protected static String getScriptExtension(String osName){
         if(osName.toLowerCase().contains("windows")){
             return "bat";
         }
         return "sh";
     }
+    
+    protected static void setScriptPermissions(String scriptPathString) throws IOException {
+        Path scriptPath = Paths.get(scriptPathString);
+        Files.setPosixFilePermissions(scriptPath, perms);
 
-    public static void writeFile(String fileName, String script) throws IOException {
-        File file = new File(fileName);
-        FileWriter fileWriter = new FileWriter(file);
-        PrintWriter printWriter = new PrintWriter(fileWriter);
-        printWriter.print(script);
-        printWriter.close();
     }
 
+    protected static Process execElasticsearchSquidStopScript () throws IOException {
+        return Runtime.getRuntime().exec("nohup sh " + elasticsearchSquidDockerStopScriptPathString + " &");
+    }
 
-    public static void execScript(String scriptName) throws IOException, InterruptedException {
-        Process p = Runtime.getRuntime().exec("nohup sh " + scriptName + " &");
+    protected static Process execElasticsearchSquidStartScript (HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts) throws IOException {
+        String execScriptCommand = "nohup sh" +
+                " " + elasticsearchSquidDockerStartScriptPathString +
+                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP) +
+                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES02_SP) +
+                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP) +
+                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) +
+                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) +
+                " &";
+        return Runtime.getRuntime().exec(execScriptCommand);
+    }
+
+    protected static void startElasticsearchSquidDocker(HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts) throws IOException, InterruptedException {
+        editYmlFile(resourcesFolderAbsolutePath + "/es1.yml" , elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP));
+        editYmlFile(resourcesFolderAbsolutePath + "/es2.yml" , elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP));
+        setScriptPermissions(elasticsearchSquidDockerStartScriptPathString);
+        Process p = execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts);
         p.waitFor();
+        showLogsDuringScriptExecution(p);
+        logger.info("Waiting for docker containers to start ...");
+        Thread.sleep(15000);
+    }
 
+    protected  static void stopElasticsearchSquidDocker() throws IOException, InterruptedException {
+        setScriptPermissions(elasticsearchSquidDockerStopScriptPathString);
+        Process p = execElasticsearchSquidStopScript();
+        p.waitFor();
+        showLogsDuringScriptExecution(p);
+    }
+
+    protected static void showLogsDuringScriptExecution(Process p) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-
-
         String line;
         while ((line = reader.readLine()) != null) {
             logger.info(line);
         }
-
-
         while ((line = errorReader.readLine()) != null) {
             logger.info(line);
         }
+    }
 
-        if(scriptName.equals(dockerStartScriptName)) {
-            logger.info("Waiting for docker containers to start ...");
-            Thread.sleep(15000);
+    protected static void editYmlFile(String ymlPathString, String port) throws IOException {
+        FileInputStream fisTargetFile = new FileInputStream(ymlPathString);
+        String ymlContentString = IOUtils.toString(fisTargetFile, "UTF-8");
+        LinkedHashMap<String,String> ymlMap = convertStringToLinkedHashMapWithArray(ymlContentString);
+        ymlMap.put("http.port", " " + port);
+        BufferedWriter  bf = new BufferedWriter(new FileWriter(ymlPathString));
+        for (Map.Entry<String, String> entry :
+                ymlMap.entrySet()) {
+            bf.write(entry.getKey() + ":"
+                    + entry.getValue());
+            bf.newLine();
         }
+        bf.flush();
+    }
+
+    protected static LinkedHashMap<String,String> convertStringToLinkedHashMapWithArray(String s) {
+        LinkedHashMap<String, String> myMap = new LinkedHashMap<>();
+        String[] pairs = s.split("\n");
+        for (int i = 0; i < pairs.length; i++) {
+            String pair = pairs[i];
+            String[] keyValue = pair.split(":");
+            myMap.put(keyValue[0], keyValue[1]);
+        }
+        return myMap;
     }
 }
