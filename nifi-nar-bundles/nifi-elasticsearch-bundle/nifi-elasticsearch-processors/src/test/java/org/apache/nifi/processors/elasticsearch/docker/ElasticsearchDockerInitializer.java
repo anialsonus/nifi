@@ -66,6 +66,7 @@ import java.util.logging.Logger;
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP) +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) +
+                " " + resourcesFolderAbsolutePath +
                 " &";
         return Runtime.getRuntime().exec(execScriptCommand);
     }
