@@ -58,7 +58,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     }
 
     @Test
-    public void testPutElasticSearchHttpRecordBasic() throws InitializationException, InterruptedException {
+    public void testPutElasticSearchHttpRecordBasic() throws InitializationException {
         logger.info("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
