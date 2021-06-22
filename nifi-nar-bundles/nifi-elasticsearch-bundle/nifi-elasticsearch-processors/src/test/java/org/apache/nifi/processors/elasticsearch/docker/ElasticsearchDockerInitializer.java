@@ -72,8 +72,6 @@ import java.util.logging.Logger;
     }
 
     protected static void startElasticsearchSquidDocker(HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts) throws IOException, InterruptedException {
-        editYmlFile(resourcesFolderAbsolutePath + "/es1.yml" , elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP));
-        editYmlFile(resourcesFolderAbsolutePath + "/es2.yml" , elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP));
         setScriptPermissions(elasticsearchSquidDockerStartScriptPathString);
         Process p = execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts);
         p.waitFor();
@@ -99,31 +97,5 @@ import java.util.logging.Logger;
         while ((line = errorReader.readLine()) != null) {
             logger.info(line);
         }
-    }
-
-    protected static void editYmlFile(String ymlPathString, String port) throws IOException {
-        FileInputStream fisTargetFile = new FileInputStream(ymlPathString);
-        String ymlContentString = IOUtils.toString(fisTargetFile, "UTF-8");
-        LinkedHashMap<String,String> ymlMap = convertStringToLinkedHashMapWithArray(ymlContentString);
-        ymlMap.put("http.port", " " + port);
-        BufferedWriter  bf = new BufferedWriter(new FileWriter(ymlPathString));
-        for (Map.Entry<String, String> entry :
-                ymlMap.entrySet()) {
-            bf.write(entry.getKey() + ":"
-                    + entry.getValue());
-            bf.newLine();
-        }
-        bf.flush();
-    }
-
-    protected static LinkedHashMap<String,String> convertStringToLinkedHashMapWithArray(String s) {
-        LinkedHashMap<String, String> myMap = new LinkedHashMap<>();
-        String[] pairs = s.split("\n");
-        for (int i = 0; i < pairs.length; i++) {
-            String pair = pairs[i];
-            String[] keyValue = pair.split(":");
-            myMap.put(keyValue[0], keyValue[1]);
-        }
-        return myMap;
     }
 }

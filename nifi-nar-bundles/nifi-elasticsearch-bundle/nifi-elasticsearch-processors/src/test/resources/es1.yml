@@ -10,4 +10,3 @@ node.master: true
 node.data: true
 discovery.zen.ping.unicast.hosts: ["172.18.0.2","172.18.0.3"]
 discovery.zen.minimum_master_nodes: 1
-http.port: 43611
