@@ -1,14 +1,17 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
-import org.apache.commons.io.IOUtils;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 
@@ -17,7 +20,7 @@ import java.util.logging.Logger;
     protected static String resourcesFolderAbsolutePath = new File(resourcesFolderPath).getAbsolutePath();
     protected static String osName = System.getProperty("os.name");
     protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker."+getScriptExtension(osName);
-    protected static String elasticsearchSquidDockerStopScriptPathString = resourcesFolderAbsolutePath +"/stop-docker."+getScriptExtension(osName);
+    protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker."+getScriptExtension(osName);
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
     protected static Set<PosixFilePermission> perms = new HashSet<>();
 
@@ -54,8 +57,8 @@ import java.util.logging.Logger;
 
     }
 
-    protected static Process execElasticsearchSquidStopScript () throws IOException {
-        return Runtime.getRuntime().exec("nohup sh " + elasticsearchSquidDockerStopScriptPathString + " &");
+    protected static Process execElasticsearchSquidClearScript () throws IOException {
+        return Runtime.getRuntime().exec("nohup sh " + elasticsearchSquidDockerClearScriptPathString + " &");
     }
 
     protected static Process execElasticsearchSquidStartScript (HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts) throws IOException {
@@ -80,9 +83,9 @@ import java.util.logging.Logger;
         Thread.sleep(15000);
     }
 
-    protected  static void stopElasticsearchSquidDocker() throws IOException, InterruptedException {
-        setScriptPermissions(elasticsearchSquidDockerStopScriptPathString);
-        Process p = execElasticsearchSquidStopScript();
+    protected  static void clearElasticsearchSquidDocker() throws IOException, InterruptedException {
+        setScriptPermissions(elasticsearchSquidDockerClearScriptPathString);
+        Process p = execElasticsearchSquidClearScript();
         p.waitFor();
         showLogsDuringScriptExecution(p);
     }

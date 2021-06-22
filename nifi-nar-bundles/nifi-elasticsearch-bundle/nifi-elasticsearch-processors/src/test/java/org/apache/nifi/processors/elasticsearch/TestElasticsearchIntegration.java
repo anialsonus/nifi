@@ -36,14 +36,15 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     esUrlProxy = "http://172.18.0.2:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP);
     proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);
     proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP);
+    clearElasticsearchSquidDocker();
     startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts);
     }
 
 
     @AfterClass
-    public static  void stopContainers() throws IOException, InterruptedException {
+    public static  void clearContainers() throws IOException, InterruptedException {
         logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
-        stopElasticsearchSquidDocker();
+        clearElasticsearchSquidDocker();
     }
 
 
