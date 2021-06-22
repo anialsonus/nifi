@@ -2,7 +2,6 @@ cluster.name: elasticsearch-cluster
 node.name: es-node2
 network.bind_host: 172.18.0.3
 network.publish_host: 172.18.0.3
-http.port: 36757
 transport.tcp.port: 9300
 http.cors.enabled: true
 http.cors.allow-origin: "*"
@@ -10,3 +9,4 @@ node.master: true
 node.data: true
 discovery.zen.ping.unicast.hosts: ["172.18.0.2","172.18.0.3"]
 discovery.zen.minimum_master_nodes: 1
+http.port: 43611
