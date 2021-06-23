@@ -1,3 +1,5 @@
+docker pull elasticsearch:7.4.2
+docker pull sameersbn/squid:3.5.27-2
 docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 es_squid
 docker run -e ES_JAVA_OPTS="-Xms256m -Xmx256m" -e http.port=$3 -d -p $1:$3 -v $6/es1.yml:/usr/share/elasticsearch/config/elasticsearch.yml  -v es_nifi_01:/usr/share/elasticsearch/data --network=es_squid --ip 172.18.0.2 --name ES_NIFI_01 elasticsearch:7.4.2
 docker run -e ES_JAVA_OPTS="-Xms256m -Xmx256m" -e http.port=$3 -d -p $2:$3 -v $6/es2.yml:/usr/share/elasticsearch/config/elasticsearch.yml  -v es_nifi_02:/usr/share/elasticsearch/data --network=es_squid --ip 172.18.0.3 --name ES_NIFI_02 elasticsearch:7.4.2
