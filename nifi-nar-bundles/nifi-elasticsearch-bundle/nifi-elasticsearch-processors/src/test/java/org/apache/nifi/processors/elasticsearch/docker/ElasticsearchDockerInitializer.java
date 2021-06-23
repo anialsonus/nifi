@@ -80,7 +80,7 @@ import java.util.logging.Logger;
         p.waitFor();
         showLogsDuringScriptExecution(p);
         logger.info("Waiting for docker containers to start ...");
-        Thread.sleep(15000);
+        Thread.sleep(30000);
     }
 
     protected  static void clearElasticsearchSquidDocker() throws IOException, InterruptedException {
