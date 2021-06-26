@@ -8,4 +8,3 @@ docker rm SQUID_NIFI
 docker rm SQUID_NIFI_AUTH
 docker volume rm es_nifi_01
 docker volume rm es_nifi_02
-docker network rm es_squid

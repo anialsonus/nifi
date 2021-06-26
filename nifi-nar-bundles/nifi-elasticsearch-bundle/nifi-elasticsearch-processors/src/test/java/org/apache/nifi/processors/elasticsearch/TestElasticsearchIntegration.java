@@ -1,7 +1,9 @@
 package org.apache.nifi.processors.elasticsearch;
 
+import javafx.util.Pair;
 import org.apache.nifi.processors.elasticsearch.docker.DockerServicePortType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
+import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchNodesType;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -12,11 +14,14 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -28,23 +33,37 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     private static String esUrlProxy;
     private static String proxyPort;
     private static String proxyAuthPort;
+    private static Boolean networkExisted;
+    private static String network;
 
     @BeforeClass
     public static void initializeContainers() throws IOException, InterruptedException {
-    HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
-    esUrl = "http://127.0.0.1:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
-    esUrlProxy = "http://172.18.0.2:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_CP);
-    proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);
-    proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP);
-    clearElasticsearchSquidDocker();
-    startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts);
+        Pair<String, Boolean> networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
+        network = networkExistedBefore.getKey();
+        logger.info("NETWORK - " + network);
+        networkExisted = networkExistedBefore.getValue();
+        HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
+        for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
+            logger.info(entry.getKey() + ":" + entry.getValue());
+        }
+        HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
+        esUrl = "http://127.0.0.1:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
+        esUrlProxy = "http://" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
+        proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);
+        proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP);
+        clearElasticsearchSquidDocker();
+        startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
     }
 
 
     @AfterClass
     public static  void clearContainers() throws IOException, InterruptedException {
-        logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
         clearElasticsearchSquidDocker();
+        if (!networkExisted){
+            logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
+            String closeNetworkCommand = "docker network rm " + network;
+            getLogsDuringScriptExecution(runShellCommand(closeNetworkCommand));
+        }
     }
 
 
