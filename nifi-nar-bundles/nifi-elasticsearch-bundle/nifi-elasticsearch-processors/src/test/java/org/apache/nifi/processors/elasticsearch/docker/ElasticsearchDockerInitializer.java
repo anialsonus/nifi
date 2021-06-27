@@ -139,7 +139,7 @@ import java.util.logging.Logger;
             }
         }
         if (notConnected) {
-            throw new IOException("Connection not successful. The following errors were emerged while starting the containers: "
+            throw new IOException("Connection not successful. The following errors were emerged while starting the containers: \n"
                    + logElasticsearchSquidDocker.getValue());
         }
     }
