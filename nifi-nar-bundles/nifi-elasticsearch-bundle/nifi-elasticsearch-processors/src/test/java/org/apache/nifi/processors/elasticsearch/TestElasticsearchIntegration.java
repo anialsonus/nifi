@@ -1,9 +1,9 @@
 package org.apache.nifi.processors.elasticsearch;
 
-import javafx.util.Pair;
 import org.apache.nifi.processors.elasticsearch.docker.DockerServicePortType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchNodesType;
+import org.apache.nifi.processors.elasticsearch.docker.PreStartNetworkStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -14,8 +14,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -38,10 +36,10 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
     @BeforeClass
     public static void initializeContainers() throws IOException, InterruptedException {
-        Pair<String, Boolean> networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
-        network = networkExistedBefore.getKey();
+       PreStartNetworkStatus networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
+        network = networkExistedBefore.getNetworkName();
         logger.info("NETWORK - " + network);
-        networkExisted = networkExistedBefore.getValue();
+        networkExisted = networkExistedBefore.isExistedBefore();
         HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
             logger.info(entry.getKey() + ":" + entry.getValue());

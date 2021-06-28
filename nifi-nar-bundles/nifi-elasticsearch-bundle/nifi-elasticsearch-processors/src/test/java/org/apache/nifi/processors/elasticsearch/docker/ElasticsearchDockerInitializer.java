@@ -1,7 +1,6 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
-import javafx.util.Pair;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -109,7 +108,7 @@ import java.util.logging.Logger;
         Process p = execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
         p.waitFor();
         logger.info("Waiting for docker containers to start ...");
-        Pair<String, String> logElasticsearchSquidDocker = getLogsDuringScriptExecution(p);
+        LogStatistics logElasticsearchSquidDocker = getLogsDuringScriptExecution(p);
         String curlElasticsearch = "curl http://localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
         String curlFromSquidToElasticsearch = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
         String curlFromSquidAuthToElasticsearch = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200";
@@ -121,14 +120,14 @@ import java.util.logging.Logger;
         Integer countSleep = 0;
         while(keepWaitingConnection) {
             Thread.sleep(1000);
-            Pair<String, String> logCurlElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlElasticsearch));
-            Pair<String, String> logCurlFromSquidToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidToElasticsearch));
-            Pair<String, String> logCurlFromSquidAuthToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidAuthToElasticsearch));
+            LogStatistics logCurlElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlElasticsearch));
+            LogStatistics logCurlFromSquidToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidToElasticsearch));
+            LogStatistics logCurlFromSquidAuthToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidAuthToElasticsearch));
             countSleep = countSleep + 1000;
             String connectionSuccessful = "You Know, for Search";
-            if (logCurlElasticsearch.getKey().contains(connectionSuccessful)
-                    && logCurlFromSquidToElasticsearch.getKey().contains(connectionSuccessful)
-                    && logCurlFromSquidAuthToElasticsearch.getKey().contains(connectionSuccessful))
+            if (logCurlElasticsearch.getLog().contains(connectionSuccessful)
+                    && logCurlFromSquidToElasticsearch.getLog().contains(connectionSuccessful)
+                    && logCurlFromSquidAuthToElasticsearch.getLog().contains(connectionSuccessful))
             {
                 notConnected = false;
                 keepWaitingConnection = false;
@@ -140,7 +139,7 @@ import java.util.logging.Logger;
         }
         if (notConnected) {
             throw new IOException("Connection not successful. The following errors were emerged while starting the containers: \n"
-                   + logElasticsearchSquidDocker.getValue());
+                   + logElasticsearchSquidDocker.getErrorLog());
         }
     }
 
@@ -152,32 +151,31 @@ import java.util.logging.Logger;
     }
 
 
-    protected static Pair<String, Boolean> initializeNetwork(String proxyNetwork) throws IOException, InterruptedException {
+    protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws IOException, InterruptedException {
         boolean networkExistedBefore = false;
         String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
-        Pair<String,String> startNetworkCommandLog = getLogsDuringScriptExecution(runShellCommand(startNetworkCommand));
-        if(startNetworkCommandLog.getKey().contains("Pool overlaps with other one on this address space")) {
+        LogStatistics startNetworkCommandLog = getLogsDuringScriptExecution(runShellCommand(startNetworkCommand));
+        if(startNetworkCommandLog.getLog().contains("Pool overlaps with other one on this address space")) {
             networkExistedBefore = true;
             String getDockerNetworkList = "docker network ls --format \"{{.Name}}\"";
-            Pair<String,String> dockerNetworkListLog = getLogsDuringScriptExecution(runShellCommand(getDockerNetworkList));
-            String networkListWithoutQuotes = dockerNetworkListLog.getKey().replaceAll("\"", "");
+            LogStatistics dockerNetworkListLog = getLogsDuringScriptExecution(runShellCommand(getDockerNetworkList));
+            String networkListWithoutQuotes = dockerNetworkListLog.getLog().replaceAll("\"", "");
             String[] networkList = networkListWithoutQuotes.split("\n");
             for (String network : networkList) {
                 String getNetworkNameWithSubnet = "docker network inspect " + network;
-                Pair<String,String> getNetworkNameWithSubnetLog = getLogsDuringScriptExecution(runShellCommand(getNetworkNameWithSubnet));
-                if (getNetworkNameWithSubnetLog.getKey().contains("172.18.0.0")) {
+                LogStatistics getNetworkNameWithSubnetLog = getLogsDuringScriptExecution(runShellCommand(getNetworkNameWithSubnet));
+                if (getNetworkNameWithSubnetLog.getLog().contains("172.18.0.0")) {
                     proxyNetwork = network;
                     break;
                 }
             }
         }
-        logger.info(startNetworkCommandLog.getValue());
-        if (startNetworkCommandLog.getKey().contains("network with name " + proxyNetwork + " already exists")) {
+        if (startNetworkCommandLog.getLog().contains("network with name " + proxyNetwork + " already exists")) {
             logger.info("Network with such name already exists");
             networkExistedBefore = true;
         }
-        Pair networkNameExisted = new Pair<>(proxyNetwork, networkExistedBefore);
-        return networkNameExisted;
+
+        return new PreStartNetworkStatus(proxyNetwork,networkExistedBefore);
     }
 
 
@@ -188,7 +186,7 @@ import java.util.logging.Logger;
         getLogsDuringScriptExecution(p);
     }
 
-    protected static Pair<String,String> getLogsDuringScriptExecution(Process p) throws IOException {
+    protected static LogStatistics getLogsDuringScriptExecution(Process p) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
         String line;
@@ -202,6 +200,6 @@ import java.util.logging.Logger;
             errorLog = errorLog + line +"\n";
         }
         logger.info(log);
-        return new Pair<>(log, errorLog);
+        return new LogStatistics(log,errorLog);
     }
 }
