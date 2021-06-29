@@ -1,10 +1,8 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -16,9 +14,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 
- public class ElasticsearchDockerInitializer {
+public class ElasticsearchDockerInitializer {
     protected static String resourcesFolderPath = "src/test/resources";
     protected static String resourcesFolderAbsolutePath = new File(resourcesFolderPath).getAbsolutePath();
     protected static String osName = System.getProperty("os.name");
@@ -26,11 +26,21 @@ import java.util.logging.Logger;
     protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker."+getScriptExtension(osName);
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
     protected static Set<PosixFilePermission> perms = new HashSet<>();
+    protected static PrintStream prStr;
+    protected static StreamHandler streamHandler;
+    protected static ByteArrayOutputStream loggerContent;
+    protected static String log;
+    protected static String errorLog;
 
     static {
         perms.add(PosixFilePermission.OWNER_READ);
         perms.add(PosixFilePermission.OWNER_WRITE);
         perms.add(PosixFilePermission.OWNER_EXECUTE);
+
+        loggerContent = new ByteArrayOutputStream();
+        prStr = new PrintStream(loggerContent);
+        streamHandler = new StreamHandler(prStr, new SimpleFormatter());
+        logger.addHandler(streamHandler);
     }
 
 
@@ -108,38 +118,44 @@ import java.util.logging.Logger;
         Process p = execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
         p.waitFor();
         logger.info("Waiting for docker containers to start ...");
-        LogStatistics logElasticsearchSquidDocker = getLogsDuringScriptExecution(p);
-        String curlElasticsearch = "curl http://localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
-        String curlFromSquidToElasticsearch = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
-        String curlFromSquidAuthToElasticsearch = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200";
-        logger.info(curlElasticsearch);
-        logger.info(curlFromSquidToElasticsearch);
-        logger.info(curlFromSquidAuthToElasticsearch);
+        logWriter(p);
+        String curlElasticsearchCommand = "curl http://localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
+        String curlFromSquidToElasticsearchCommand = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
+        String curlFromSquidAuthToElasticsearchCommand = "curl -x http://localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200";
+        log = log + "\n" + curlElasticsearchCommand + "\n" + curlFromSquidToElasticsearchCommand + "\n"  + curlFromSquidAuthToElasticsearchCommand + "\n" ;
         boolean notConnected = true;
         boolean keepWaitingConnection = true;
         Integer countSleep = 0;
+        String testLog = "";
         while(keepWaitingConnection) {
             Thread.sleep(1000);
-            LogStatistics logCurlElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlElasticsearch));
-            LogStatistics logCurlFromSquidToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidToElasticsearch));
-            LogStatistics logCurlFromSquidAuthToElasticsearch = getLogsDuringScriptExecution(runShellCommand(curlFromSquidAuthToElasticsearch));
-            countSleep = countSleep + 1000;
+            String logCurlElasticsearch = logWriter(runShellCommand(curlElasticsearchCommand));
+            System.out.println(logCurlElasticsearch);
+            testLog = testLog + logCurlElasticsearch;
+            String logCurlFromSquidToElasticsearch = logWriter(runShellCommand(curlFromSquidToElasticsearchCommand));
+            testLog = testLog + logCurlFromSquidToElasticsearch;
+            String logCurlFromSquidAuthToElasticsearch = logWriter(runShellCommand(curlFromSquidAuthToElasticsearchCommand));
+            testLog = testLog + logCurlFromSquidAuthToElasticsearch;
+            countSleep = countSleep + 1;
             String connectionSuccessful = "You Know, for Search";
-            if (logCurlElasticsearch.getLog().contains(connectionSuccessful)
-                    && logCurlFromSquidToElasticsearch.getLog().contains(connectionSuccessful)
-                    && logCurlFromSquidAuthToElasticsearch.getLog().contains(connectionSuccessful))
+            if (logCurlElasticsearch.contains(connectionSuccessful)
+                    && logCurlFromSquidToElasticsearch.contains(connectionSuccessful)
+                    && logCurlFromSquidAuthToElasticsearch.contains(connectionSuccessful))
             {
                 notConnected = false;
                 keepWaitingConnection = false;
                 logger.info("Elasticsearch docker cluster and squid docker containers have started successfully");
             }
-            if (countSleep >= 60000) {
+            if (countSleep >= 15) {
                 keepWaitingConnection = false;
             }
         }
+        testLog = testLog + "COUNT_SLEEP = " + countSleep;
+        System.out.println(testLog);
         if (notConnected) {
             throw new IOException("Connection not successful. The following errors were emerged while starting the containers: \n"
-                   + logElasticsearchSquidDocker.getErrorLog());
+                   + log
+            );
         }
     }
 
@@ -154,23 +170,23 @@ import java.util.logging.Logger;
     protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws IOException, InterruptedException {
         boolean networkExistedBefore = false;
         String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
-        LogStatistics startNetworkCommandLog = getLogsDuringScriptExecution(runShellCommand(startNetworkCommand));
-        if(startNetworkCommandLog.getLog().contains("Pool overlaps with other one on this address space")) {
+        String startNetworkCommandLog = logWriter(runShellCommand(startNetworkCommand));
+        if(startNetworkCommandLog.contains("Pool overlaps with other one on this address space")) {
             networkExistedBefore = true;
             String getDockerNetworkList = "docker network ls --format \"{{.Name}}\"";
-            LogStatistics dockerNetworkListLog = getLogsDuringScriptExecution(runShellCommand(getDockerNetworkList));
-            String networkListWithoutQuotes = dockerNetworkListLog.getLog().replaceAll("\"", "");
+            String dockerNetworkListLog = logWriter(runShellCommand(getDockerNetworkList));
+            String networkListWithoutQuotes = dockerNetworkListLog.replaceAll("\"", "");
             String[] networkList = networkListWithoutQuotes.split("\n");
             for (String network : networkList) {
                 String getNetworkNameWithSubnet = "docker network inspect " + network;
-                LogStatistics getNetworkNameWithSubnetLog = getLogsDuringScriptExecution(runShellCommand(getNetworkNameWithSubnet));
-                if (getNetworkNameWithSubnetLog.getLog().contains("172.18.0.0")) {
+                String getNetworkNameWithSubnetLog = logWriter(runShellCommand(getNetworkNameWithSubnet));
+                if (getNetworkNameWithSubnetLog.contains("172.18.0.0")) {
                     proxyNetwork = network;
                     break;
                 }
             }
         }
-        if (startNetworkCommandLog.getLog().contains("network with name " + proxyNetwork + " already exists")) {
+        if (startNetworkCommandLog.contains("network with name " + proxyNetwork + " already exists")) {
             logger.info("Network with such name already exists");
             networkExistedBefore = true;
         }
@@ -183,23 +199,30 @@ import java.util.logging.Logger;
         setScriptPermissions(elasticsearchSquidDockerClearScriptPathString);
         Process p = execElasticsearchSquidClearScript();
         p.waitFor();
-        getLogsDuringScriptExecution(p);
+        logWriter(p);
     }
 
-    protected static LogStatistics getLogsDuringScriptExecution(Process p) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-        String line;
-        String log = "";
-        String errorLog = "";
-        while ((line = reader.readLine()) != null) {
-            log = log + line + "\n";
+    protected static String logWriter(Process process) throws IOException {
+        InputStream istream = process.getInputStream();
+        InputStream errorIStream = process.getErrorStream();
+        Writer writer = new StringWriter();
+        char[] buffer = new char[1024];
+        Reader reader = new BufferedReader(new InputStreamReader( istream ));
+        Reader errorReader = new BufferedReader(new InputStreamReader( errorIStream ));
+
+        int n;
+        while ((n = reader.read(buffer)) != -1) {
+            writer.write(buffer, 0, n);
         }
-        while ((line = errorReader.readLine()) != null) {
-            log = log + line + "\n";
-            errorLog = errorLog + line +"\n";
+        while ((n = errorReader.read(buffer)) != -1) {
+            writer.write(buffer, 0, n);
         }
-        logger.info(log);
-        return new LogStatistics(log,errorLog);
+
+        logger.info(writer.toString());
+        log = log + writer;
+        reader.close();
+        istream.close();
+        errorIStream.close();
+        return writer.toString();
     }
 }

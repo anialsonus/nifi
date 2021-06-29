@@ -11,4 +11,8 @@ public class LogStatistics {
     private String log;
     private String errorLog;
 
+    public void addLog(String newLog) {
+        this.log = this.getLog() + newLog;
+    }
+
 }
