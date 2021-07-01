@@ -41,6 +41,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         logger.info("NETWORK - " + network);
         networkExisted = networkExistedBefore.isExistedBefore();
         HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
+        logger.info("Elasticsearch cluster nodes ip addresses");
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
             logger.info(entry.getKey() + ":" + entry.getValue());
         }
