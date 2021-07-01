@@ -44,7 +44,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
-            elasticsearchNodesIps = "\n" + entry + "\n";
+            elasticsearchNodesIps = elasticsearchNodesIps + "\n" + entry.getKey() + " - " + entry.getValue() + "\n";
         }
         logger.info("Elasticsearch cluster nodes ip addresses:"+ elasticsearchNodesIps);
         HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
@@ -64,7 +64,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         if (!networkExisted){
             logger.info("Removing es_squid network ...");
             String closeNetworkCommand = "docker network rm " + network;
-            writeCommonLog(runShellCommand(closeNetworkCommand), closeNetworkCommand);
+            runShellCommandWithLogs(closeNetworkCommand);
         }
     }
 
