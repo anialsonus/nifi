@@ -280,7 +280,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         return mapper.readTree(in);
     }
 
-    protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id,String routing, String jsonString) {
+    protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String routing, String jsonString) {
         if (indexOp.equalsIgnoreCase("index") || indexOp.equalsIgnoreCase("create")) {
             sb.append("{\"");
             sb.append(indexOp.toLowerCase());
