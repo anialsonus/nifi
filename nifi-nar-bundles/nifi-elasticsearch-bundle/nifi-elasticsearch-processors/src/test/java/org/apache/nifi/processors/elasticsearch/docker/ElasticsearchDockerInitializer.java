@@ -154,6 +154,7 @@ public class ElasticsearchDockerInitializer {
             );
             addErrorLog("Total amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed");
             addErrorLog(errorCurl);
+            addErrorLog("Tip: check if sysctl vm.max_map_count>262144");
             throw new IOException("Connection not successful. The following errors  emerged while starting the containers: \n"
                    + errorLog
             );
