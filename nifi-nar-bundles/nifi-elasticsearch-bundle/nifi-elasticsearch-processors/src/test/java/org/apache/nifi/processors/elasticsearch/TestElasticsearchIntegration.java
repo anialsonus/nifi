@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,14 +41,14 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         network = networkExistedBefore.getNetworkName();
         logger.info("Docker network name - " + network);
         networkExisted = networkExistedBefore.isExistedBefore();
-        HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
+        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
             elasticsearchNodesIps = elasticsearchNodesIps + "\n" + entry.getKey() + " - " + entry.getValue();
         }
         logger.info("Elasticsearch cluster nodes ip addresses:"+ elasticsearchNodesIps);
-        HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
+        EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
         esUrl = "http://127.0.0.1:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
         esUrlProxy = "http://" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
         proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);

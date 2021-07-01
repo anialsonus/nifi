@@ -8,10 +8,7 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 
@@ -38,8 +35,8 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected static HashMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
-        HashMap<DockerServicePortType, String> servicesPorts = new HashMap<>();
+    protected static EnumMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
+        EnumMap<DockerServicePortType, String> servicesPorts = new EnumMap<>(DockerServicePortType.class);
         DockerServicePortType[] elasticsearchSquidDockerServices = {DockerServicePortType.ES01_SP,  DockerServicePortType.ES02_SP,
                 DockerServicePortType.SQUID_SP, DockerServicePortType.SQUID_AUTH_SP,
                 };
@@ -57,7 +54,7 @@ public class ElasticsearchDockerInitializer {
         runShellCommandWithLogs(clearDockerCommand);
     }
 
-    protected static void execElasticsearchSquidStartScript (HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
+    protected static void execElasticsearchSquidStartScript (EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
         String execScriptCommand = "nohup sh" +
                 " " + elasticsearchSquidDockerStartScriptPathString +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP) +
@@ -77,10 +74,10 @@ public class ElasticsearchDockerInitializer {
         }
     }
 
-    protected static HashMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws IOException {
+    protected static EnumMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws IOException {
         SubnetUtils utils = new SubnetUtils("172.18.0.0/16");
         String[] allIpsInSubnet = utils.getInfo().getAllAddresses();
-        HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = new HashMap<>();
+        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = new EnumMap<>(ElasticsearchNodesType.class);
         ArrayList<String> elasticsearchIps = new ArrayList<>();
         ArrayList<ElasticsearchNodesType> serverNodes = new ArrayList<>() {{
             add(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS);
@@ -103,7 +100,7 @@ public class ElasticsearchDockerInitializer {
         return elasticsearchServerHosts;
     }
 
-    protected static void startElasticsearchSquidDocker(HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
+    protected static void startElasticsearchSquidDocker(EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
         execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
         String curlElasticsearchCommand = "curl localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
         String curlFromSquidToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
