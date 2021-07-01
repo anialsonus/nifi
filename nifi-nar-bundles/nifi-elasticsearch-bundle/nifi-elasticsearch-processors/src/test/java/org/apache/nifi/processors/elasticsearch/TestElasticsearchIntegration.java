@@ -60,7 +60,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         if (!networkExisted){
             logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
             String closeNetworkCommand = "docker network rm " + network;
-            logWriter(runShellCommand(closeNetworkCommand), closeNetworkCommand);
+            writeLogs(runShellCommand(closeNetworkCommand), closeNetworkCommand);
         }
     }
 

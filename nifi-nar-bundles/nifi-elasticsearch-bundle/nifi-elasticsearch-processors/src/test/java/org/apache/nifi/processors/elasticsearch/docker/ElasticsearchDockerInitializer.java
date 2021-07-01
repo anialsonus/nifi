@@ -74,8 +74,7 @@ public class ElasticsearchDockerInitializer {
         String clearDockerCommand = "nohup sh " + elasticsearchSquidDockerClearScriptPathString + " &";
         Process clearDocker = Runtime.getRuntime().exec(clearDockerCommand);
         clearDocker.waitFor();
-        logWriter(clearDocker, clearDockerCommand);
-
+        closeStreams(writeCommonLog(clearDocker, clearDockerCommand));
     }
 
     protected static void execElasticsearchSquidStartScript (HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
@@ -95,7 +94,7 @@ public class ElasticsearchDockerInitializer {
         + execScriptCommand + "\n");
         Process execScript = Runtime.getRuntime().exec(execScriptCommand);
         execScript.waitFor();
-        logWriter(execScript, execScriptCommand);
+        writeLogs(execScript, execScriptCommand);
     }
 
     protected static HashMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws IOException {
@@ -133,10 +132,9 @@ public class ElasticsearchDockerInitializer {
         while(keepWaitingConnection) {
             Thread.sleep(3000);
             addLog("Docker containers initialization. Attempt # " + attemptsToConnect);
-            addErrorLog("Docker containers initialization. Attempt # " + attemptsToConnect);
-            String logCurlElasticsearch = logWriter(runShellCommand(curlElasticsearchCommand), curlElasticsearchCommand);
-            String logCurlFromSquidToElasticsearch = logWriter(runShellCommand(curlFromSquidToElasticsearchCommand), curlFromSquidToElasticsearchCommand);
-            String logCurlFromSquidAuthToElasticsearch = logWriter(runShellCommand(curlFromSquidAuthToElasticsearchCommand), curlFromSquidAuthToElasticsearchCommand);
+            String logCurlElasticsearch = writeLogs(runShellCommand(curlElasticsearchCommand), curlElasticsearchCommand);
+            String logCurlFromSquidToElasticsearch = writeLogs(runShellCommand(curlFromSquidToElasticsearchCommand), curlFromSquidToElasticsearchCommand);
+            String logCurlFromSquidAuthToElasticsearch = writeLogs(runShellCommand(curlFromSquidAuthToElasticsearchCommand), curlFromSquidAuthToElasticsearchCommand);
             attemptsToConnect = attemptsToConnect + 1;
             String connectionSuccessful = "You Know, for Search";
             if (logCurlElasticsearch.contains(connectionSuccessful)
@@ -171,26 +169,37 @@ public class ElasticsearchDockerInitializer {
     protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws IOException, InterruptedException {
         boolean networkExistedBefore = false;
         String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
-        String startNetworkCommandLog = logWriter(runShellCommand(startNetworkCommand), startNetworkCommand);
+        LogWriterComponents networkInitializerLogComponents = writeCommonLog(runShellCommand(startNetworkCommand), startNetworkCommand);
+        String startNetworkCommandLog = networkInitializerLogComponents.getLogWriter().toString();
         if(startNetworkCommandLog.contains("Pool overlaps with other one on this address space")) {
+            addLog("Trying to find the network set on 172.18.0.0/16 subnet ...");
             networkExistedBefore = true;
             String getDockerNetworkList = "docker network ls --format \"{{.Name}}\"";
-            String dockerNetworkListLog = logWriter(runShellCommand(getDockerNetworkList), getDockerNetworkList);
+            String dockerNetworkListLog = writeLogs(runShellCommand(getDockerNetworkList), getDockerNetworkList);
             String networkListWithoutQuotes = dockerNetworkListLog.replaceAll("\"", "");
             String[] networkList = networkListWithoutQuotes.split("\n");
             for (String network : networkList) {
                 String getNetworkNameWithSubnet = "docker network inspect " + network;
-                String getNetworkNameWithSubnetLog = logWriter(runShellCommand(getNetworkNameWithSubnet), getNetworkNameWithSubnet);
+                String getNetworkNameWithSubnetLog = writeLogs(runShellCommand(getNetworkNameWithSubnet), getNetworkNameWithSubnet);
                 if (getNetworkNameWithSubnetLog.contains("172.18.0.0")) {
                     proxyNetwork = network;
+                    addLog("Pool with 172.18.0.0 subnet found. It is " + proxyNetwork + ". All docker services will be set on unused hosts of this network.");
                     break;
                 }
             }
         }
         if (startNetworkCommandLog.contains("network with name " + proxyNetwork + " already exists")) {
-            addLog("Network with name " + proxyNetwork + " already exists");
+            String getNetworkSubnetCommand = "docker network inspect " + proxyNetwork;
+            LogWriterComponents networkInspect = writeCommonLog(runShellCommand(getNetworkSubnetCommand), getNetworkSubnetCommand);
+            String networkInspectLog = networkInspect.getLogWriter().toString();
+            if(!networkInspectLog.contains("172.18.0.0")){
+                setErrorLogs(networkInspect,  getNetworkSubnetCommand);
+                throw new IOException("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0 subnet! Whole log with emerged errors shown below " +
+                        errorLog);
+            }
             networkExistedBefore = true;
         }
+        closeStreams(networkInitializerLogComponents);
         return new PreStartNetworkStatus(proxyNetwork,networkExistedBefore);
     }
 
@@ -201,7 +210,7 @@ public class ElasticsearchDockerInitializer {
 
     }
 
-    protected static String logWriter(Process process, String command) throws IOException {
+    protected static LogWriterComponents writeCommonLog(Process process, String command) throws IOException {
         InputStream istream = process.getInputStream();
         InputStream errorIStream = process.getErrorStream();
         Writer writer = new StringWriter();
@@ -218,16 +227,34 @@ public class ElasticsearchDockerInitializer {
             writer.write(buffer, 0, n);
             errorWriter.write(buffer, 0, n);
         }
-
         logger.info(writer.toString());
         log = log + "\n" + "Running command - \n" + command + "\n" + writer;
+        return new LogWriterComponents(writer, errorWriter, istream, errorIStream, reader, errorReader);
+    }
+
+    protected static void closeStreams(LogWriterComponents logWriterComponents) throws IOException {
+        logWriterComponents.getReader().close();
+        logWriterComponents.getErrorReader().close();
+        logWriterComponents.getIStream().close();
+        logWriterComponents.getErrorIStream().close();
+    }
+
+    protected static String writeLogs(Process process, String command) throws IOException {
+        LogWriterComponents logWriterComponents = writeCommonLog(process, command);
+        Writer writer = logWriterComponents.getLogWriter();
+        Writer errorWriter = logWriterComponents.getErrorLogWriter();
         if(!errorWriter.toString().equals("")){
             errorLog = errorLog + "\n" + "Running command - \n" + command + "\n" + errorWriter;
         }
-        reader.close();
-        istream.close();
-        errorIStream.close();
+        closeStreams(logWriterComponents);
         return writer.toString();
+    }
+
+    protected static void setErrorLogs(LogWriterComponents logWriterComponents, String command) {
+        Writer errorWriter = logWriterComponents.getErrorLogWriter();
+        if(!errorWriter.toString().equals("")){
+            errorLog = errorLog + "\n" + "Running command - \n" + command + "\n" + errorWriter;
+        }
     }
 
     protected static void addLog(String logLine){
