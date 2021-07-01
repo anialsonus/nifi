@@ -58,7 +58,7 @@ public class ElasticsearchDockerInitializer {
         String clearDockerCommand = "nohup sh " + elasticsearchSquidDockerClearScriptPathString + " &";
         Process clearDocker = Runtime.getRuntime().exec(clearDockerCommand);
         clearDocker.waitFor();
-        closeStreams(writeCommonLog(clearDocker, clearDockerCommand));
+        closeLogWriterComponents(writeCommonLog(clearDocker, clearDockerCommand));
     }
 
     protected static void execElasticsearchSquidStartScript (HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
@@ -137,9 +137,9 @@ public class ElasticsearchDockerInitializer {
             errorCurl = addLogIfNotContained(errorCurl, errorLogCurlElasticsearch, curlElasticsearchCommand);
             errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidToElasticsearch, curlFromSquidToElasticsearchCommand);
             errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidAuthToElasticsearch, curlFromSquidAuthToElasticsearchCommand);
-            closeStreams(logCurlElasticsearch);
-            closeStreams(logCurlFromSquidToElasticsearch);
-            closeStreams(logCurlFromSquidAuthToElasticsearch);
+            closeLogWriterComponents(logCurlElasticsearch);
+            closeLogWriterComponents(logCurlFromSquidToElasticsearch);
+            closeLogWriterComponents(logCurlFromSquidAuthToElasticsearch);
             if (attemptsToConnect > 20) {
                 keepWaitingConnection = false;
             }
@@ -208,7 +208,7 @@ public class ElasticsearchDockerInitializer {
             }
             networkExistedBefore = true;
         }
-        closeStreams(networkInitializerLogComponents);
+        closeLogWriterComponents(networkInitializerLogComponents);
         return new PreStartNetworkStatus(proxyNetwork,networkExistedBefore);
     }
 
@@ -241,7 +241,7 @@ public class ElasticsearchDockerInitializer {
         return new LogWriterComponents(writer, errorWriter, istream, errorIStream, reader, errorReader);
     }
 
-    protected static void closeStreams(LogWriterComponents logWriterComponents) throws IOException {
+    protected static void closeLogWriterComponents(LogWriterComponents logWriterComponents) throws IOException {
         logWriterComponents.getReader().close();
         logWriterComponents.getErrorReader().close();
         logWriterComponents.getIStream().close();
@@ -255,7 +255,7 @@ public class ElasticsearchDockerInitializer {
         if(!errorWriter.toString().equals("")){
             errorLog = errorLog + "\n" + "Running command - \n" + command + "\n" + errorWriter;
         }
-        closeStreams(logWriterComponents);
+        closeLogWriterComponents(logWriterComponents);
         return writer.toString();
     }
 
