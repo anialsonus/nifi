@@ -229,7 +229,7 @@ public class ElasticsearchDockerInitializer {
         if(errorWriter.toString().toLowerCase().contains("permission denied")){
             throw new IOException("User does not have permissions to run the command - "
             + command
-            + "\nAdditional info from the error log:\n"
+            + "\nFull description from the error log:\n"
             + errorWriter
             );
         }
