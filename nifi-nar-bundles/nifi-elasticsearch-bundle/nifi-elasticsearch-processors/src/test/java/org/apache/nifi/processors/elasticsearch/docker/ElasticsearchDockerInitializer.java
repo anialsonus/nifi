@@ -131,7 +131,6 @@ public class ElasticsearchDockerInitializer {
                 addLog("Elasticsearch docker cluster and squid docker containers have started successfully");
             }
             String errorLogCurlElasticsearch = logCurlElasticsearch.getErrorLogWriter().toString();
-            System.out.println("ERROR CURL - " + errorLogCurlElasticsearch);
             String errorLogCurlFromSquidToElasticsearch = logCurlFromSquidToElasticsearch.getErrorLogWriter().toString();
             String errorLogCurlFromSquidAuthToElasticsearch = logCurlFromSquidAuthToElasticsearch.getErrorLogWriter().toString();
             errorCurl = addLogIfNotContained(errorCurl, errorLogCurlElasticsearch, curlElasticsearchCommand);
