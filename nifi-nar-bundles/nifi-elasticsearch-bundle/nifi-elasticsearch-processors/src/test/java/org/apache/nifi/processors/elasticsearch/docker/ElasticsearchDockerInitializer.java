@@ -14,21 +14,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
+
 
 
 public class ElasticsearchDockerInitializer {
     protected static String resourcesFolderPath = "src/test/resources";
     protected static String resourcesFolderAbsolutePath = new File(resourcesFolderPath).getAbsolutePath();
-    protected static String osName = System.getProperty("os.name");
-    protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker."+getScriptExtension(osName);
-    protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker."+getScriptExtension(osName);
+    protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker.sh";
+    protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker.sh";
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
     protected static Set<PosixFilePermission> perms = new HashSet<>();
-    protected static PrintStream prStr;
-    protected static StreamHandler streamHandler;
-    protected static ByteArrayOutputStream loggerContent;
     protected static String log;
     protected static String errorLog;
 
@@ -37,10 +32,6 @@ public class ElasticsearchDockerInitializer {
         perms.add(PosixFilePermission.OWNER_WRITE);
         perms.add(PosixFilePermission.OWNER_EXECUTE);
 
-        loggerContent = new ByteArrayOutputStream();
-        prStr = new PrintStream(loggerContent);
-        streamHandler = new StreamHandler(prStr, new SimpleFormatter());
-        logger.addHandler(streamHandler);
     }
 
 
@@ -57,13 +48,6 @@ public class ElasticsearchDockerInitializer {
         return servicesPorts;
     }
 
-    protected static String getScriptExtension(String osName){
-        if(osName.toLowerCase().contains("windows")){
-            return "bat";
-        }
-        return "sh";
-    }
-    
     protected static void setScriptPermissions(String scriptPathString) throws IOException {
         Path scriptPath = Paths.get(scriptPathString);
         Files.setPosixFilePermissions(scriptPath, perms);
@@ -129,29 +113,47 @@ public class ElasticsearchDockerInitializer {
         boolean notConnected = true;
         boolean keepWaitingConnection = true;
         Integer attemptsToConnect = 1;
+        String errorCurl = "";
         while(keepWaitingConnection) {
             Thread.sleep(3000);
             addLog("Docker containers initialization. Attempt # " + attemptsToConnect);
-            String logCurlElasticsearch = writeLogs(runShellCommand(curlElasticsearchCommand), curlElasticsearchCommand);
-            String logCurlFromSquidToElasticsearch = writeLogs(runShellCommand(curlFromSquidToElasticsearchCommand), curlFromSquidToElasticsearchCommand);
-            String logCurlFromSquidAuthToElasticsearch = writeLogs(runShellCommand(curlFromSquidAuthToElasticsearchCommand), curlFromSquidAuthToElasticsearchCommand);
+            LogWriterComponents logCurlElasticsearch = writeCommonLog(runShellCommand(curlElasticsearchCommand), curlElasticsearchCommand);
+            LogWriterComponents logCurlFromSquidToElasticsearch = writeCommonLog(runShellCommand(curlFromSquidToElasticsearchCommand), curlFromSquidToElasticsearchCommand);
+            LogWriterComponents logCurlFromSquidAuthToElasticsearch = writeCommonLog(runShellCommand(curlFromSquidAuthToElasticsearchCommand), curlFromSquidAuthToElasticsearchCommand);
             attemptsToConnect = attemptsToConnect + 1;
             String connectionSuccessful = "You Know, for Search";
-            if (logCurlElasticsearch.contains(connectionSuccessful)
-                    && logCurlFromSquidToElasticsearch.contains(connectionSuccessful)
-                    && logCurlFromSquidAuthToElasticsearch.contains(connectionSuccessful))
+            if (logCurlElasticsearch.getLogWriter().toString().contains(connectionSuccessful)
+                    && logCurlFromSquidToElasticsearch.getLogWriter().toString().contains(connectionSuccessful)
+                    && logCurlFromSquidAuthToElasticsearch.getLogWriter().toString().contains(connectionSuccessful))
             {
                 notConnected = false;
                 keepWaitingConnection = false;
                 addLog("Elasticsearch docker cluster and squid docker containers have started successfully");
             }
+            String errorLogCurlElasticsearch = logCurlElasticsearch.getErrorLogWriter().toString();
+            System.out.println("ERROR CURL - " + errorLogCurlElasticsearch);
+            String errorLogCurlFromSquidToElasticsearch = logCurlFromSquidToElasticsearch.getErrorLogWriter().toString();
+            String errorLogCurlFromSquidAuthToElasticsearch = logCurlFromSquidAuthToElasticsearch.getErrorLogWriter().toString();
+            errorCurl = addLogIfNotContained(errorCurl, errorLogCurlElasticsearch, curlElasticsearchCommand);
+            errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidToElasticsearch, curlFromSquidToElasticsearchCommand);
+            errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidAuthToElasticsearch, curlFromSquidAuthToElasticsearchCommand);
+            closeStreams(logCurlElasticsearch);
+            closeStreams(logCurlFromSquidToElasticsearch);
+            closeStreams(logCurlFromSquidAuthToElasticsearch);
             if (attemptsToConnect > 20) {
                 keepWaitingConnection = false;
             }
         }
         addLog("Total amount of connection attempts - " + (attemptsToConnect-1) + "\n" + "Containers started successfully - " + !notConnected);
         if (notConnected) {
+            addErrorLog("The following ip addresses were set for elasticsearch nodes - "
+                    +  elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200"
+                    + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200"
+                    +".\nThe following ip address was set for squid - " +  "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP)
+                    +".\nThe following ip address was set for squid with authentication parameters - " + "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP)
+            );
             addErrorLog("Total amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed");
+            addErrorLog(errorCurl);
             throw new IOException("Connection not successful. The following errors  emerged while starting the containers: \n"
                    + errorLog
             );
@@ -163,6 +165,13 @@ public class ElasticsearchDockerInitializer {
         Process pr = run.exec(shellCommand);
         pr.waitFor();
         return pr;
+    }
+
+    protected static String addLogIfNotContained(String commonLog, String logLine, String command) {
+        if(!commonLog.toLowerCase().contains(logLine.toLowerCase())){
+            commonLog = commonLog + "\n" + "Running " + command  + "\n" + logLine + "\n";
+        }
+        return commonLog;
     }
 
 
