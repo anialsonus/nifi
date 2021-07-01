@@ -44,7 +44,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
-            elasticsearchNodesIps = elasticsearchNodesIps + "\n" + entry.getKey() + " - " + entry.getValue() + "\n";
+            elasticsearchNodesIps = elasticsearchNodesIps + "\n" + entry.getKey() + " - " + entry.getValue();
         }
         logger.info("Elasticsearch cluster nodes ip addresses:"+ elasticsearchNodesIps);
         HashMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
