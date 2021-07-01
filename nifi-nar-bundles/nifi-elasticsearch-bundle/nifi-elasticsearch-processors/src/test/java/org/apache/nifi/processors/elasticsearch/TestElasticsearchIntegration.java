@@ -38,7 +38,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     public static void initializeContainers() throws IOException, InterruptedException {
        PreStartNetworkStatus networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
         network = networkExistedBefore.getNetworkName();
-        logger.info("NETWORK - " + network);
+        logger.info("Docker network name - " + network);
         networkExisted = networkExistedBefore.isExistedBefore();
         HashMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
         logger.info("Elasticsearch cluster nodes ip addresses");
@@ -59,11 +59,12 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
     @AfterClass
     public static  void clearContainers() throws IOException, InterruptedException {
+        logger.info("Waiting for docker containers to stop...");
         clearElasticsearchSquidDocker();
         if (!networkExisted){
-            logger.info("Waiting for docker containers to stop. Removing es_squid network ...");
+            logger.info("Removing es_squid network ...");
             String closeNetworkCommand = "docker network rm " + network;
-            writeLogs(runShellCommand(closeNetworkCommand), closeNetworkCommand);
+            writeCommonLog(runShellCommand(closeNetworkCommand), closeNetworkCommand);
         }
     }
 
