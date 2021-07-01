@@ -227,7 +227,11 @@ public class ElasticsearchDockerInitializer {
         }
         logger.info( "Running command - \n" + command + "\n" + writer);
         if(errorWriter.toString().toLowerCase().contains("permission denied")){
-            throw new IOException("Docker user does not have permissions to run start container commands");
+            throw new IOException("User does not have permissions to run the command - "
+            + command
+            + "\nAdditional info from the error log:\n"
+            + errorWriter
+            );
         }
         LogWriterComponents logWriterComponents = new LogWriterComponents(writer.toString(), errorWriter.toString());
         reader.close();
