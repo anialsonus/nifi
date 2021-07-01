@@ -73,8 +73,6 @@ public class ElasticsearchDockerInitializer {
                 " " + network +
                 " " + "[\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"\",\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + "\"]" +
                 " &";
-        logger.info("Starting script to initiate docker containers on random free hosts of specified subnet (172.18.0.0/16) with the following command " + "\n"
-        + execScriptCommand + "\n");
         Process execScript = Runtime.getRuntime().exec(execScriptCommand);
         execScript.waitFor();
         writeLogs(execScript, execScriptCommand);
@@ -113,7 +111,7 @@ public class ElasticsearchDockerInitializer {
         Integer attemptsToConnect = 1;
         String errorCurl = "";
         while(keepWaitingConnection) {
-            Thread.sleep(3000);
+            Thread.sleep(10000);
             logger.info("Docker containers initialization. Attempt # " + attemptsToConnect);
             LogWriterComponents logCurlElasticsearch = writeCommonLog(runShellCommand(curlElasticsearchCommand), curlElasticsearchCommand);
             LogWriterComponents logCurlFromSquidToElasticsearch = writeCommonLog(runShellCommand(curlFromSquidToElasticsearchCommand), curlFromSquidToElasticsearchCommand);
