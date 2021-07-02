@@ -135,7 +135,7 @@ public class ElasticsearchDockerInitializer {
         if (notConnected) {
             String errorLog =
                     "Docker network used in elasticsearch & squid containers initialization - " + dockerNetworkName + "\n"
-                    + "Docker network uses the following subnet - " + "\n"
+                    + "The following ip addresses were set for elasticsearch nodes - "
                     + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200; "
                     + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200"
                     + "\nThe following ip address was set for squid - " +  "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP)
