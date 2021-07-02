@@ -7,8 +7,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class PreStartNetworkStatus {
-    private String networkName;
-    private boolean existedBefore;
-
+public class PreStartDockerNetworkParams {
+    private String dockerNetworkName;
+    private boolean dockerNetworkExistedBefore;
+    private String dockerNetworkSubnet;
 }

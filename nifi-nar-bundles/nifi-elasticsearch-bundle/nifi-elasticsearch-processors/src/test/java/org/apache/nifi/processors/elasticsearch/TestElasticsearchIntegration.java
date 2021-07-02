@@ -3,7 +3,7 @@ package org.apache.nifi.processors.elasticsearch;
 import org.apache.nifi.processors.elasticsearch.docker.DockerServicePortType;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchDockerInitializer;
 import org.apache.nifi.processors.elasticsearch.docker.ElasticsearchNodesType;
-import org.apache.nifi.processors.elasticsearch.docker.PreStartNetworkStatus;
+import org.apache.nifi.processors.elasticsearch.docker.PreStartDockerNetworkParams;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -12,7 +12,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.*;
-
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Time;
@@ -21,7 +20,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -32,16 +30,16 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     private static String esUrlProxy;
     private static String proxyPort;
     private static String proxyAuthPort;
-    private static Boolean networkExisted;
-    private static String network;
+    private static Boolean dockerNetworkExisted;
+    private static String dockerNetworkName;
 
     @BeforeClass
     public static void initializeContainers() throws Exception {
-       PreStartNetworkStatus networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
-        network = networkExistedBefore.getNetworkName();
-        logger.info("Docker network name - " + network);
-        networkExisted = networkExistedBefore.isExistedBefore();
-        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet();
+       PreStartDockerNetworkParams dockerNetworkParams = initializeDockerNetwork();
+        dockerNetworkName = dockerNetworkParams.getDockerNetworkName();
+        logger.info("Docker network name - " + dockerNetworkName);
+        dockerNetworkExisted = dockerNetworkParams.isDockerNetworkExistedBefore();
+        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet(dockerNetworkParams.getDockerNetworkSubnet());
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
@@ -54,7 +52,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP);
         proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP);
         clearElasticsearchSquidDocker();
-        startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
+        startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, dockerNetworkName);
     }
 
 
@@ -62,9 +60,9 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     public static  void clearContainers() throws Exception {
         logger.info("Waiting for docker containers to stop...");
         clearElasticsearchSquidDocker();
-        if (!networkExisted){
+        if (!dockerNetworkExisted){
             logger.info("Removing es_squid network ...");
-            String closeNetworkCommand = "docker network rm " + network;
+            String closeNetworkCommand = "docker network rm " + dockerNetworkName;
             runShellCommandWithLogs(closeNetworkCommand);
         }
     }

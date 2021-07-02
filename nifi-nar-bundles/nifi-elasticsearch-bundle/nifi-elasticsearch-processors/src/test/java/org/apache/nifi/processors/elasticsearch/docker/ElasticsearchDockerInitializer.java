@@ -1,6 +1,8 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -74,8 +76,8 @@ public class ElasticsearchDockerInitializer {
         }
     }
 
-    protected static EnumMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws Exception {
-        SubnetUtils utils = new SubnetUtils("172.18.0.0/16");
+    protected static EnumMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet(String subnet) throws Exception {
+        SubnetUtils utils = new SubnetUtils(subnet);
         String[] allIpsInSubnet = utils.getInfo().getAllAddresses();
         EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = new EnumMap<>(ElasticsearchNodesType.class);
         ArrayList<String> elasticsearchIps = new ArrayList<>();
@@ -157,38 +159,42 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws Exception {
-        boolean networkExistedBefore = false;
-        String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
+    protected static PreStartDockerNetworkParams initializeDockerNetwork() throws Exception {
+        boolean dockerNetworkExistedBefore = false;
+        String dockerNetworkName = "elasticsearch_squid_nifi";
+        String dockerNetworkSubnet = "172.18.0.0/16";
+        String startNetworkCommand = "docker network create --subnet=" + dockerNetworkSubnet + " --gateway=172.18.0.1 " + dockerNetworkName;
         CommandLogComponents networkInitializerLogComponents = runShellCommandWithLogs(startNetworkCommand);
         String startNetworkCommandLog = networkInitializerLogComponents.getLog();
         if(startNetworkCommandLog.contains("Pool overlaps with other one on this address space")) {
             logger.info("Trying to find the network with pool set on this address space ...");
-            networkExistedBefore = true;
+            dockerNetworkExistedBefore = true;
             String dockerNetworkListCommand = "docker network ls --format {{.Name}}";
             CommandLogComponents dockerNetworkListLog = runShellCommandWithLogs(dockerNetworkListCommand);
-            String dockerNetworkList = dockerNetworkListLog.getLog();
-            String[] networkList = dockerNetworkList.split("\n");
-            for (String network : networkList) {
-                String getNetworkNameWithSubnet = "docker network inspect " + network;
-                String getNetworkNameWithSubnetLog = runShellCommandWithLogs(getNetworkNameWithSubnet).getLog();
+            String dockerNetworks = dockerNetworkListLog.getLog();
+            String[] dockerNetworkList = dockerNetworks.split("\n");
+            for (String network : dockerNetworkList) {
+                String getNetworkNameWithSubnetCommand = "docker network inspect " + network;
+                String getNetworkNameWithSubnetLog = runShellCommandWithLogs(getNetworkNameWithSubnetCommand).getLog();
                 if (getNetworkNameWithSubnetLog.contains("172.18.0.0")) {
-                    proxyNetwork = network;
-                    logger.info("Network with pool which has overlapped with the necessary address space is found. It is " + proxyNetwork + ". All docker services will be set on non-functioning ip addresses of this pool.");
+                    dockerNetworkName = network;
+                    dockerNetworkSubnet = getDockerNetworkSubnet(getNetworkNameWithSubnetLog);
+                    logger.info("Network with pool which has overlapped with the necessary address space is found. It is " + dockerNetworkName + ". All docker services will be set on non-functioning ip addresses of this pool.");
                     break;
                 }
             }
         }
-        if (startNetworkCommandLog.contains("network with name " + proxyNetwork + " already exists")) {
-            String getNetworkSubnetCommand = "docker network inspect " + proxyNetwork;
+        if (startNetworkCommandLog.contains("network with name " + dockerNetworkName + " already exists")) {
+            String getNetworkSubnetCommand = "docker network inspect " + dockerNetworkName;
             CommandLogComponents networkInspect = runShellCommandWithLogs(getNetworkSubnetCommand);
             String networkInspectLog = networkInspect.getLog();
+            dockerNetworkSubnet = getDockerNetworkSubnet(networkInspectLog);
             if(!networkInspectLog.contains("172.18.0.0")){
-                throw new Exception("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0/16 subnet");
+                throw new Exception("Network with name " + dockerNetworkName + " exists, but it is set on different subnet");
             }
-            networkExistedBefore = true;
+            dockerNetworkExistedBefore = true;
         }
-        return new PreStartNetworkStatus(proxyNetwork,networkExistedBefore);
+        return new PreStartDockerNetworkParams(dockerNetworkName,dockerNetworkExistedBefore, dockerNetworkSubnet);
     }
 
 
@@ -230,6 +236,12 @@ public class ElasticsearchDockerInitializer {
         istream.close();
         errorIStream.close();
         return commandLogComponents;
+    }
+
+    protected static String getDockerNetworkSubnet(String dockerNetworkInspectLog){
+        JSONArray dockerNetworkInfoJsonArray = new JSONArray(dockerNetworkInspectLog);
+        JSONObject dockerNetworkConfigObject = dockerNetworkInfoJsonArray.getJSONObject(0).getJSONObject("IPAM").getJSONArray("Config").getJSONObject(0);
+        return dockerNetworkConfigObject.getString("Subnet");
     }
 
 }
