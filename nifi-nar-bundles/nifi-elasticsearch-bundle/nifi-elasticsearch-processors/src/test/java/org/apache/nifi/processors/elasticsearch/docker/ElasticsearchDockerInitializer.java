@@ -184,7 +184,7 @@ public class ElasticsearchDockerInitializer {
             CommandLogComponents networkInspect = runShellCommandWithLogs(getNetworkSubnetCommand);
             String networkInspectLog = networkInspect.getLog();
             if(!networkInspectLog.contains("172.18.0.0")){
-                throw new Exception("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0 subnet");
+                throw new Exception("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0/16 subnet");
             }
             networkExistedBefore = true;
         }
