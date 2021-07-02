@@ -174,7 +174,7 @@ public class ElasticsearchDockerInitializer {
                 String getNetworkNameWithSubnetLog = runShellCommandWithLogs(getNetworkNameWithSubnet).getLog();
                 if (getNetworkNameWithSubnetLog.contains("172.18.0.0")) {
                     proxyNetwork = network;
-                    logger.info("Network with pool which has overlapped with the necessary address space is found. It is " + proxyNetwork + ". All docker services will be set on unused hosts of this pool.");
+                    logger.info("Network with pool which has overlapped with the necessary address space is found. It is " + proxyNetwork + ". All docker services will be set on non-functioning ip addresses of this pool.");
                     break;
                 }
             }
