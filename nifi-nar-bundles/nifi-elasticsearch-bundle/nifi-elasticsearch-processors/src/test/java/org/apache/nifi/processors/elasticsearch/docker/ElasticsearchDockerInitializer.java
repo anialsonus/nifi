@@ -1,9 +1,6 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -12,7 +9,9 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
 import java.util.logging.Logger;
-
+import org.json.simple.*;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 
 public class ElasticsearchDockerInitializer {
@@ -238,10 +237,15 @@ public class ElasticsearchDockerInitializer {
         return commandLogComponents;
     }
 
-    protected static String getDockerNetworkSubnet(String dockerNetworkInspectLog){
-        JSONArray dockerNetworkInfoJsonArray = new JSONArray(dockerNetworkInspectLog);
-        JSONObject dockerNetworkConfigObject = dockerNetworkInfoJsonArray.getJSONObject(0).getJSONObject("IPAM").getJSONArray("Config").getJSONObject(0);
-        return dockerNetworkConfigObject.getString("Subnet");
+    protected static String getDockerNetworkSubnet(String dockerNetworkInspectLog) throws ParseException {
+        JSONParser jsonParser = new JSONParser();
+        JSONArray dockerNetworkInfoJsonArray = (JSONArray)jsonParser.parse(dockerNetworkInspectLog);
+        JSONObject dockerNetworkInfoObject = (JSONObject)dockerNetworkInfoJsonArray.get(0);
+        JSONObject dockerNetworkIpamObject = (JSONObject)dockerNetworkInfoObject.get("IPAM");
+        JSONArray dockerNetworkConfigArray = (JSONArray)dockerNetworkIpamObject.get("Config");
+        JSONObject dockerNetworkConfigObject = (JSONObject)dockerNetworkConfigArray.get(0);
+        String dockerNetworkSubnet = dockerNetworkConfigObject.get("Subnet").toString();
+        return dockerNetworkSubnet;
     }
 
 }

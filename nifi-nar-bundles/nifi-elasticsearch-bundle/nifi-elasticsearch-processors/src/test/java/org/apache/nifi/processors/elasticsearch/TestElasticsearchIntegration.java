@@ -37,9 +37,11 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     public static void initializeContainers() throws Exception {
        PreStartDockerNetworkParams dockerNetworkParams = initializeDockerNetwork();
         dockerNetworkName = dockerNetworkParams.getDockerNetworkName();
+        String dockerNetworkSubnet = dockerNetworkParams.getDockerNetworkSubnet();
         logger.info("Docker network name - " + dockerNetworkName);
+        logger.info("Docker network subnet - " + dockerNetworkSubnet);
         dockerNetworkExisted = dockerNetworkParams.isDockerNetworkExistedBefore();
-        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet(dockerNetworkParams.getDockerNetworkSubnet());
+        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet(dockerNetworkSubnet);
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
         for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
