@@ -125,12 +125,9 @@ public class ElasticsearchDockerInitializer {
                 keepWaitingConnection = false;
                 logger.info("Elasticsearch docker cluster and squid docker containers have started successfully");
             }
-            String errorLogCurlElasticsearch = logCurlElasticsearch.getErrorLog();
-            String errorLogCurlFromSquidToElasticsearch = logCurlFromSquidToElasticsearch.getErrorLog();
-            String errorLogCurlFromSquidAuthToElasticsearch = logCurlFromSquidAuthToElasticsearch.getErrorLog();
-            errorCurl = addLogIfNotContained(errorCurl, errorLogCurlElasticsearch, curlElasticsearchCommand);
-            errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidToElasticsearch, curlFromSquidToElasticsearchCommand);
-            errorCurl = addLogIfNotContained(errorCurl,errorLogCurlFromSquidAuthToElasticsearch, curlFromSquidAuthToElasticsearchCommand);
+            errorCurl = addLogIfNotContained(errorCurl, logCurlElasticsearch.getErrorLog(), curlElasticsearchCommand);
+            errorCurl = addLogIfNotContained(errorCurl,logCurlFromSquidToElasticsearch.getErrorLog(), curlFromSquidToElasticsearchCommand);
+            errorCurl = addLogIfNotContained(errorCurl,logCurlFromSquidAuthToElasticsearch.getErrorLog(), curlFromSquidAuthToElasticsearchCommand);
 
             if (attemptsToConnect > 20) {
                 keepWaitingConnection = false;
