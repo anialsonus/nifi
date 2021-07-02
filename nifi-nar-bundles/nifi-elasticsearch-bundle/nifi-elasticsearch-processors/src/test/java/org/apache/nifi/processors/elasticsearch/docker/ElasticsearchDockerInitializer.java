@@ -79,10 +79,10 @@ public class ElasticsearchDockerInitializer {
         String[] allIpsInSubnet = utils.getInfo().getAllAddresses();
         EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = new EnumMap<>(ElasticsearchNodesType.class);
         ArrayList<String> elasticsearchIps = new ArrayList<>();
-        ArrayList<ElasticsearchNodesType> serverNodes = new ArrayList<>() {{
-            add(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS);
-            add(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS);
-        }};
+        ArrayList<ElasticsearchNodesType> serverNodes = new ArrayList<>();
+        serverNodes.add(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS);
+        serverNodes.add(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS);
+
         for (String ip: allIpsInSubnet) {
             if(elasticsearchIps.size() >= 2) {
                 break;
