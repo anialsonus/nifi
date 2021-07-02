@@ -49,12 +49,12 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected static void execElasticsearchSquidClearScript () throws IOException, InterruptedException {
+    protected static void execElasticsearchSquidClearScript () throws Exception {
         String clearDockerCommand = "nohup sh " + elasticsearchSquidDockerClearScriptPathString + " &";
         runShellCommandWithLogs(clearDockerCommand);
     }
 
-    protected static void execElasticsearchSquidStartScript (EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
+    protected static void execElasticsearchSquidStartScript (EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws Exception {
         String execScriptCommand = "nohup sh" +
                 " " + elasticsearchSquidDockerStartScriptPathString +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP) +
@@ -70,11 +70,11 @@ public class ElasticsearchDockerInitializer {
         LogWriterComponents startElasticsearchSquidContainers = runShellCommandWithLogs(execScriptCommand);
         String startElasticsearchSquidContainersErrorLogs = startElasticsearchSquidContainers.getErrorLog();
         if(!startElasticsearchSquidContainersErrorLogs.equals("")){
-            throw new IOException(startElasticsearchSquidContainersErrorLogs);
+            throw new Exception(startElasticsearchSquidContainersErrorLogs);
         }
     }
 
-    protected static EnumMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws IOException {
+    protected static EnumMap<ElasticsearchNodesType, String> getFreeHostsOnSubnet() throws Exception {
         SubnetUtils utils = new SubnetUtils("172.18.0.0/16");
         String[] allIpsInSubnet = utils.getInfo().getAllAddresses();
         EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = new EnumMap<>(ElasticsearchNodesType.class);
@@ -92,7 +92,7 @@ public class ElasticsearchDockerInitializer {
             }
         }
         if(elasticsearchIps.size() < 2){
-            throw new IOException("Couldn't find all the necessary for elasticsearch nodes ip addresses on 172.18.0.0/16 subnet. Most are occupied");
+            throw new Exception("Couldn't find all the necessary for elasticsearch nodes ip addresses on 172.18.0.0/16 subnet. Most are occupied");
         }
         for(int i = 0; i < serverNodes.size(); i++) {
             elasticsearchServerHosts.put(serverNodes.get(i), elasticsearchIps.get(i));
@@ -100,7 +100,7 @@ public class ElasticsearchDockerInitializer {
         return elasticsearchServerHosts;
     }
 
-    protected static void startElasticsearchSquidDocker(EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws IOException, InterruptedException {
+    protected static void startElasticsearchSquidDocker(EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws Exception {
         execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, network);
         String curlElasticsearchCommand = "curl localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES01_SP);
         String curlFromSquidToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
@@ -148,7 +148,7 @@ public class ElasticsearchDockerInitializer {
                     + "\nTotal amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed"
                     + errorCurl
                     + "Tip: check if sysctl vm.max_map_count > 262144";
-            throw new IOException("Connection not successful. The following errors  emerged while starting the containers: \n"
+            throw new Exception("Connection not successful. The following errors  emerged while starting the containers: \n"
                    + errorLog
             );
         }
@@ -163,7 +163,7 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws IOException, InterruptedException {
+    protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws Exception {
         boolean networkExistedBefore = false;
         String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
         LogWriterComponents networkInitializerLogComponents = runShellCommandWithLogs(startNetworkCommand);
@@ -190,7 +190,7 @@ public class ElasticsearchDockerInitializer {
             LogWriterComponents networkInspect = runShellCommandWithLogs(getNetworkSubnetCommand);
             String networkInspectLog = networkInspect.getLog();
             if(!networkInspectLog.contains("172.18.0.0")){
-                throw new IOException("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0 subnet");
+                throw new Exception("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0 subnet");
             }
             networkExistedBefore = true;
         }
@@ -198,11 +198,11 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected  static void clearElasticsearchSquidDocker() throws IOException, InterruptedException {
+    protected  static void clearElasticsearchSquidDocker() throws Exception {
         execElasticsearchSquidClearScript();
     }
 
-    protected static LogWriterComponents runShellCommandWithLogs(String command) throws IOException, InterruptedException {
+    protected static LogWriterComponents runShellCommandWithLogs(String command) throws Exception {
         Runtime run = Runtime.getRuntime();
         Process process = run.exec(command);
         process.waitFor();
@@ -224,9 +224,9 @@ public class ElasticsearchDockerInitializer {
         }
         logger.info( "Running command - \n" + command + "\n" + writer);
         if(errorWriter.toString().toLowerCase().contains("permission denied")){
-            throw new IOException("User does not have permissions to run the command - "
+            throw new Exception("User does not have permissions to run the command - "
             + command
-            + "\nFull description from the error log:\n"
+            + "\nFull description from the error log - \n"
             + errorWriter
             );
         }

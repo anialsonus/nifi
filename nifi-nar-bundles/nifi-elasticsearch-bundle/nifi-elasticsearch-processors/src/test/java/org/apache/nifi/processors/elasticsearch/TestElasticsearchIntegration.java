@@ -36,7 +36,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     private static String network;
 
     @BeforeClass
-    public static void initializeContainers() throws IOException, InterruptedException {
+    public static void initializeContainers() throws Exception {
        PreStartNetworkStatus networkExistedBefore = initializeNetwork("elasticsearch_squid_nifi");
         network = networkExistedBefore.getNetworkName();
         logger.info("Docker network name - " + network);
@@ -59,7 +59,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
 
 
     @AfterClass
-    public static  void clearContainers() throws IOException, InterruptedException {
+    public static  void clearContainers() throws Exception {
         logger.info("Waiting for docker containers to stop...");
         clearElasticsearchSquidDocker();
         if (!networkExisted){
