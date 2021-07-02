@@ -141,7 +141,7 @@ public class ElasticsearchDockerInitializer {
                     + "\nThe following ip address was set for squid with authentication parameters - " + "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP)
                     + "\nTotal amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed"
                     + errorCurl
-                    + "Tip: check if sysctl vm.max_map_count > 262144";
+                    + "\nTip: check if sysctl vm.max_map_count > 262144";
             throw new Exception("Connection not successful. The following errors  emerged while starting the containers: \n"
                    + errorLog
             );
@@ -151,7 +151,7 @@ public class ElasticsearchDockerInitializer {
 
     protected static String addLogIfNotContained(String commonLog, String logLine, String command) {
         if(!commonLog.toLowerCase().contains(logLine.toLowerCase())){
-            commonLog = commonLog + "\n" + "Running " + command  + "\n" + logLine + "\n";
+            commonLog = commonLog + "\n" + "Running " + command  + "\n" + logLine;
         }
         return commonLog;
     }
