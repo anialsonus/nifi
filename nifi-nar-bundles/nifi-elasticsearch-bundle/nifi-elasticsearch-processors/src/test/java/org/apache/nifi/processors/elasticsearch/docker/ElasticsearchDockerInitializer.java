@@ -67,7 +67,7 @@ public class ElasticsearchDockerInitializer {
                 " " + network +
                 " " + "[\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"\",\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + "\"]" +
                 " &";
-        LogWriterComponents startElasticsearchSquidContainers = runShellCommandWithLogs(execScriptCommand);
+        CommandLogComponents startElasticsearchSquidContainers = runShellCommandWithLogs(execScriptCommand);
         String startElasticsearchSquidContainersErrorLogs = startElasticsearchSquidContainers.getErrorLog();
         if(!startElasticsearchSquidContainersErrorLogs.equals("")){
             throw new Exception(startElasticsearchSquidContainersErrorLogs);
@@ -112,9 +112,9 @@ public class ElasticsearchDockerInitializer {
         while(keepWaitingConnection) {
             Thread.sleep(10000);
             logger.info("Docker containers initialization. Attempt # " + attemptsToConnect);
-            LogWriterComponents logCurlElasticsearch = runShellCommandWithLogs(curlElasticsearchCommand);
-            LogWriterComponents logCurlFromSquidToElasticsearch = runShellCommandWithLogs(curlFromSquidToElasticsearchCommand);
-            LogWriterComponents logCurlFromSquidAuthToElasticsearch = runShellCommandWithLogs(curlFromSquidAuthToElasticsearchCommand);
+            CommandLogComponents logCurlElasticsearch = runShellCommandWithLogs(curlElasticsearchCommand);
+            CommandLogComponents logCurlFromSquidToElasticsearch = runShellCommandWithLogs(curlFromSquidToElasticsearchCommand);
+            CommandLogComponents logCurlFromSquidAuthToElasticsearch = runShellCommandWithLogs(curlFromSquidAuthToElasticsearchCommand);
             attemptsToConnect = attemptsToConnect + 1;
             String connectionSuccessful = "You Know, for Search";
             if (logCurlElasticsearch.getLog().contains(connectionSuccessful)
@@ -166,13 +166,13 @@ public class ElasticsearchDockerInitializer {
     protected static PreStartNetworkStatus initializeNetwork(String proxyNetwork) throws Exception {
         boolean networkExistedBefore = false;
         String startNetworkCommand = "docker network create --subnet=172.18.0.0/16 --gateway=172.18.0.1 " + proxyNetwork;
-        LogWriterComponents networkInitializerLogComponents = runShellCommandWithLogs(startNetworkCommand);
+        CommandLogComponents networkInitializerLogComponents = runShellCommandWithLogs(startNetworkCommand);
         String startNetworkCommandLog = networkInitializerLogComponents.getLog();
         if(startNetworkCommandLog.contains("Pool overlaps with other one on this address space")) {
             logger.info("Trying to find the network set on 172.18.0.0/16 subnet ...");
             networkExistedBefore = true;
             String dockerNetworkListCommand = "docker network ls --format {{.Name}}";
-            LogWriterComponents dockerNetworkListLog = runShellCommandWithLogs(dockerNetworkListCommand);
+            CommandLogComponents dockerNetworkListLog = runShellCommandWithLogs(dockerNetworkListCommand);
             String dockerNetworkList = dockerNetworkListLog.getLog();
             String[] networkList = dockerNetworkList.split("\n");
             for (String network : networkList) {
@@ -187,7 +187,7 @@ public class ElasticsearchDockerInitializer {
         }
         if (startNetworkCommandLog.contains("network with name " + proxyNetwork + " already exists")) {
             String getNetworkSubnetCommand = "docker network inspect " + proxyNetwork;
-            LogWriterComponents networkInspect = runShellCommandWithLogs(getNetworkSubnetCommand);
+            CommandLogComponents networkInspect = runShellCommandWithLogs(getNetworkSubnetCommand);
             String networkInspectLog = networkInspect.getLog();
             if(!networkInspectLog.contains("172.18.0.0")){
                 throw new Exception("Network with name " + proxyNetwork + " exists, but it is set on different than 172.18.0.0 subnet");
@@ -202,7 +202,7 @@ public class ElasticsearchDockerInitializer {
         execElasticsearchSquidClearScript();
     }
 
-    protected static LogWriterComponents runShellCommandWithLogs(String command) throws Exception {
+    protected static CommandLogComponents runShellCommandWithLogs(String command) throws Exception {
         Runtime run = Runtime.getRuntime();
         Process process = run.exec(command);
         process.waitFor();
@@ -230,12 +230,12 @@ public class ElasticsearchDockerInitializer {
             + errorWriter
             );
         }
-        LogWriterComponents logWriterComponents = new LogWriterComponents(writer.toString(), errorWriter.toString());
+        CommandLogComponents commandLogComponents = new CommandLogComponents(writer.toString(), errorWriter.toString());
         reader.close();
         errorReader.close();
         istream.close();
         errorIStream.close();
-        return logWriterComponents;
+        return commandLogComponents;
     }
 
 }

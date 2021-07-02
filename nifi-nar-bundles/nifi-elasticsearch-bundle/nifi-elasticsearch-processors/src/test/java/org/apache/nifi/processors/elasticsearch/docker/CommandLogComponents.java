@@ -8,7 +8,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Setter
 @Getter
-public class LogWriterComponents {
+public class CommandLogComponents {
     private String log;
     private String errorLog;
 }
