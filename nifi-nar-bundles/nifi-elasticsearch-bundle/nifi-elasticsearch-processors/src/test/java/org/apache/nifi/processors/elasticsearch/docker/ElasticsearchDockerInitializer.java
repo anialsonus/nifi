@@ -91,9 +91,6 @@ public class ElasticsearchDockerInitializer {
                 elasticsearchIps.add(ip);
             }
         }
-        if(elasticsearchIps.size() < 2){
-            throw new Exception("Couldn't find all the necessary for elasticsearch nodes ip addresses on 172.18.0.0/16 subnet. Most are occupied");
-        }
         for(int i = 0; i < serverNodes.size(); i++) {
             elasticsearchServerHosts.put(serverNodes.get(i), elasticsearchIps.get(i));
         }
