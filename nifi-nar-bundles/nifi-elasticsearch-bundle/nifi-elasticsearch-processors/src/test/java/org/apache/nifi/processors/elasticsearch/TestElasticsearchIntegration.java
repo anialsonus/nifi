@@ -30,7 +30,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     private static String esUrlProxy;
     private static String proxyPort;
     private static String proxyAuthPort;
-    private static Boolean dockerNetworkExisted;
+    private static Boolean dockerNetworkExistedBefore;
     private static String dockerNetworkName;
 
     @BeforeClass
@@ -40,7 +40,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
         String dockerNetworkSubnet = dockerNetworkParams.getDockerNetworkSubnet();
         logger.info("Docker network name - " + dockerNetworkName);
         logger.info("Docker network subnet - " + dockerNetworkSubnet);
-        dockerNetworkExisted = dockerNetworkParams.isDockerNetworkExistedBefore();
+        dockerNetworkExistedBefore = dockerNetworkParams.isDockerNetworkExistedBefore();
         EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet(dockerNetworkSubnet);
         logger.info("Elasticsearch cluster nodes ip addresses");
         String elasticsearchNodesIps = "";
@@ -62,7 +62,7 @@ public class TestElasticsearchIntegration extends ElasticsearchDockerInitializer
     public static  void clearContainers() throws Exception {
         logger.info("Waiting for docker containers to stop...");
         clearElasticsearchSquidDocker();
-        if (!dockerNetworkExisted){
+        if (!dockerNetworkExistedBefore){
             logger.info("Removing es_squid network ...");
             String closeNetworkCommand = "docker network rm " + dockerNetworkName;
             runShellCommandWithLogs(closeNetworkCommand);

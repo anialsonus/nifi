@@ -1,17 +1,17 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.logging.Logger;
-import org.json.simple.*;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 
 public class ElasticsearchDockerInitializer {
@@ -20,20 +20,6 @@ public class ElasticsearchDockerInitializer {
     protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker.sh";
     protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker.sh";
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
-    protected static Set<PosixFilePermission> perms = new HashSet<>();
-
-    static {
-        perms.add(PosixFilePermission.OWNER_READ);
-        perms.add(PosixFilePermission.OWNER_WRITE);
-        perms.add(PosixFilePermission.OWNER_EXECUTE);
-
-        try {
-            Files.setPosixFilePermissions(Paths.get(elasticsearchSquidDockerStartScriptPathString), perms);
-            Files.setPosixFilePermissions(Paths.get(elasticsearchSquidDockerClearScriptPathString), perms);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 
     protected static EnumMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
@@ -66,7 +52,7 @@ public class ElasticsearchDockerInitializer {
                 " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) +
                 " " + resourcesFolderAbsolutePath +
                 " " + network +
-                " " + "[\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"\",\"" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + "\"]" +
+                " " + "[" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"," + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + "]" +
                 " &";
         CommandLogComponents startElasticsearchSquidContainers = runShellCommandWithLogs(execScriptCommand);
         String startElasticsearchSquidContainersErrorLogs = startElasticsearchSquidContainers.getErrorLog();
