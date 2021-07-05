@@ -159,11 +159,11 @@ public class ElasticsearchDockerInitializer {
             String dockerNetworks = dockerNetworkListLog.getLog();
             String[] dockerNetworkList = dockerNetworks.split("\n");
             for (String network : dockerNetworkList) {
-                String getNetworkNameWithSubnetCommand = "docker network inspect " + network;
-                String getNetworkNameWithSubnetLog = runShellCommandWithLogs(getNetworkNameWithSubnetCommand).getLog();
-                if (getNetworkNameWithSubnetLog.contains("172.18.0.0")) {
+                String networkNameWithSubnetCommand = "docker network inspect " + network;
+                String networkNameWithSubnetLog = runShellCommandWithLogs(networkNameWithSubnetCommand).getLog();
+                if (networkNameWithSubnetLog.contains("172.18.0.0")) {
                     dockerNetworkName = network;
-                    dockerNetworkSubnet = getDockerNetworkSubnet(getNetworkNameWithSubnetLog);
+                    dockerNetworkSubnet = getDockerNetworkSubnet(networkNameWithSubnetLog);
                     logger.info("Network with pool which has overlapped with the necessary address space is found. It is " + dockerNetworkName + ". All docker services will be set on non-functioning ip addresses of this pool.");
                     break;
                 }
