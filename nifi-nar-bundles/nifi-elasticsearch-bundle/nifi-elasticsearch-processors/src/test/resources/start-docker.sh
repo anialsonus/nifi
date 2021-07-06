@@ -1,0 +1,7 @@
+docker pull elasticsearch:7.4.2
+docker pull sameersbn/squid:3.5.27-2
+echo docker run -e ES_JAVA_OPTS="-Xms256m -Xmx256m"  -e network.bind_host=$5 -e network.publish_host=$5 -e discovery.zen.ping.unicast.hosts=$9 -d -p $1:9200 -v $7/es1.yml:/usr/share/elasticsearch/config/elasticsearch.yml  -v es_nifi_01:/usr/share/elasticsearch/data --network=$8 --ip $5 --name ES_NIFI_01 elasticsearch:7.4.2
+docker run -e ES_JAVA_OPTS="-Xms256m -Xmx256m"  -e network.bind_host=$5 -e network.publish_host=$5 -e discovery.zen.ping.unicast.hosts=$9 -d -p $1:9200 -v $7/es1.yml:/usr/share/elasticsearch/config/elasticsearch.yml  -v es_nifi_01:/usr/share/elasticsearch/data --network=$8 --ip $5 --name ES_NIFI_01 elasticsearch:7.4.2
+docker run -e ES_JAVA_OPTS="-Xms256m -Xmx256m"  -e network.bind_host=$6 -e network.publish_host=$6 -e discovery.zen.ping.unicast.hosts=$9 -d -p $2:9200 -v $7/es2.yml:/usr/share/elasticsearch/config/elasticsearch.yml  -v es_nifi_02:/usr/share/elasticsearch/data --network=$8 --ip $6 --name ES_NIFI_02 elasticsearch:7.4.2
+docker run --name SQUID_NIFI -d --restart=always --publish $3:3228 --volume $7/squid.conf:/etc/squid/squid.conf  --volume /srv/docker/squid/cache:/var/spool/squid --network=$8 sameersbn/squid:3.5.27-2
+docker run --name SQUID_NIFI_AUTH -d --restart=always --publish $4:3328 --volume $7/squid-auth.conf:/etc/squid/squid.conf  --volume /srv/docker/squid/cache:/var/spool/squid --network=$8 sameersbn/squid:3.5.27-2

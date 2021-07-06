@@ -724,17 +724,6 @@ public class TestPutElasticsearchHttpRecord {
         }
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Integration test section below
-    //
-    // The tests below are meant to run on real ES instances, and are thus @Ignored during normal test execution.
-    // However if you wish to execute them as part of a test phase, comment out the @Ignored line for each
-    // desired test.
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Tests basic ES functionality against a local or test ES cluster
-     */
 
     @Test(expected = AssertionError.class)
     public void testPutElasticSearchBadHostInEL() throws IOException {
