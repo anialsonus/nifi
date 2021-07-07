@@ -21,10 +21,6 @@ public class ElasticsearchDockerInitializer {
     protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker.sh";
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
 
-    static{
-
-    }
-
 
     protected static EnumMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
         EnumMap<DockerServicePortType, String> servicesPorts = new EnumMap<>(DockerServicePortType.class);
