@@ -1,6 +1,7 @@
 package org.apache.nifi.processors.elasticsearch.docker;
 
 import org.apache.commons.net.util.SubnetUtils;
+import org.apache.nifi.util.TestRunner;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -9,25 +10,64 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.EnumMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.*;
 import java.util.logging.Logger;
 
 
 public class ElasticsearchDockerInitializer {
     protected static String resourcesFolderPath = "src/test/resources";
     protected static String resourcesFolderAbsolutePath = new File(resourcesFolderPath).getAbsolutePath();
-    protected static String elasticsearchSquidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-docker.sh";
-    protected static String elasticsearchSquidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-docker.sh";
+    protected static String elasticsearchDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-elasticsearch-docker.sh";
+    protected static String squidDockerStartScriptPathString = resourcesFolderAbsolutePath +"/start-squid-docker.sh";
+    protected static String elasticsearchDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-elasticsearch-docker.sh";
+    protected static String squidDockerClearScriptPathString = resourcesFolderAbsolutePath +"/clear-squid-docker.sh";
     protected static Logger logger = Logger.getLogger(ElasticsearchDockerInitializer.class.getName());
+    protected TestRunner runner;
+    protected static String esUrl;
+    protected static String esUrlProxy;
+    protected static String esTcpPort;
+    protected static String proxyPort;
+    protected static String proxyAuthPort;
+    protected static Boolean dockerNetworkExistedBefore;
+    protected static String dockerNetworkName;
+    protected static Set<PosixFilePermission> perms = new HashSet<>();
+    protected static boolean squidUsed;
+    static {
+        perms.add(PosixFilePermission.OWNER_READ);
+        perms.add(PosixFilePermission.OWNER_WRITE);
+        perms.add(PosixFilePermission.OWNER_EXECUTE);
+        Path elasticsearchStartScriptPath = Paths.get(elasticsearchDockerStartScriptPathString);
+        Path squidStartScriptPath = Paths.get(elasticsearchDockerStartScriptPathString);
+        Path elasticsearchClearScriptPath = Paths.get(elasticsearchDockerStartScriptPathString);
+        Path squidClearScriptPath = Paths.get(elasticsearchDockerStartScriptPathString);
+        try {
+            Files.setPosixFilePermissions(elasticsearchStartScriptPath, perms);
+            Files.setPosixFilePermissions(squidStartScriptPath, perms);
+            Files.setPosixFilePermissions(elasticsearchClearScriptPath, perms);
+            Files.setPosixFilePermissions(squidClearScriptPath, perms);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
     protected static EnumMap<DockerServicePortType, String> getElasticsearchSquidFreePorts() throws IOException {
         EnumMap<DockerServicePortType, String> servicesPorts = new EnumMap<>(DockerServicePortType.class);
-        DockerServicePortType[] elasticsearchSquidDockerServices = {DockerServicePortType.ES_NIFI_01_HTTP_PORT,  DockerServicePortType.ES_NIFI_02_HTTP_PORT,
-                DockerServicePortType.ES_NIFI_01_TCP_PORT,  DockerServicePortType.ES_NIFI_02_TCP_PORT,
-                DockerServicePortType.SQUID_SP, DockerServicePortType.SQUID_AUTH_SP,
-                };
+        ArrayList<DockerServicePortType> elasticsearchSquidDockerServices = new ArrayList<>();
+        elasticsearchSquidDockerServices.add(DockerServicePortType.ES_NIFI_01_HTTP_PORT);
+        elasticsearchSquidDockerServices.add(DockerServicePortType.ES_NIFI_02_HTTP_PORT);
+        elasticsearchSquidDockerServices.add(DockerServicePortType.ES_NIFI_01_TCP_PORT);
+        elasticsearchSquidDockerServices.add(DockerServicePortType.ES_NIFI_02_TCP_PORT);
+        if(squidUsed){
+            elasticsearchSquidDockerServices.add(DockerServicePortType.SQUID_HTTP_PORT);
+            elasticsearchSquidDockerServices.add(DockerServicePortType.SQUID_AUTH_HTTP_PORT);
+        }
         for (DockerServicePortType service : elasticsearchSquidDockerServices) {
             ServerSocket serverSocket = new ServerSocket(0);
             servicesPorts.put(service, Integer.toString(serverSocket.getLocalPort()));
@@ -37,30 +77,38 @@ public class ElasticsearchDockerInitializer {
     }
 
 
-    protected static void execElasticsearchSquidClearScript () throws Exception {
-        String clearDockerCommand = "nohup sh " + elasticsearchSquidDockerClearScriptPathString + " &";
-        runShellCommandWithLogs(clearDockerCommand);
-    }
 
     protected static void execElasticsearchSquidStartScript (EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts , EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String network) throws Exception {
-        String execScriptCommand = "nohup sh" +
-                " " + elasticsearchSquidDockerStartScriptPathString +
+        String execStartElasticsearchScriptCommand = "nohup sh" +
+                " " + elasticsearchDockerStartScriptPathString +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_HTTP_PORT) +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_02_HTTP_PORT) +
-                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) +
-                " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) +
-                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +
-                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) +
-                " " + resourcesFolderAbsolutePath +
-                " " + network +
-                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"," + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_TCP_PORT) +
                 " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_02_TCP_PORT) +
+                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +
+                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) +
+                " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) +"," + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) +
+                " " + network +
+                " " + resourcesFolderAbsolutePath +
                 " &";
-        CommandLogComponents startElasticsearchSquidContainers = runShellCommandWithLogs(execScriptCommand);
-        String startElasticsearchSquidContainersErrorLogs = startElasticsearchSquidContainers.getErrorLog();
-        if(!startElasticsearchSquidContainersErrorLogs.equals("")){
-            throw new Exception(startElasticsearchSquidContainersErrorLogs);
+        CommandLogComponents startElasticsearchSContainers = runShellCommandWithLogs(execStartElasticsearchScriptCommand);
+        String startElasticsearchContainersErrorLogs = startElasticsearchSContainers.getErrorLog();
+        if(!startElasticsearchContainersErrorLogs.equals("")){
+            throw new Exception(startElasticsearchContainersErrorLogs);
+        }
+        if (squidUsed){
+            String execsquidUsedScriptCommand = "nohup sh" +
+                    " " + squidDockerStartScriptPathString +
+                    " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_HTTP_PORT) +
+                    " " + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_HTTP_PORT) +
+                    " " + resourcesFolderAbsolutePath +
+                    " " + network +
+                    " &";
+            CommandLogComponents squidUsedContainers = runShellCommandWithLogs(execsquidUsedScriptCommand);
+            String squidUsedContainersErrorLogs = squidUsedContainers.getErrorLog();
+            if(!squidUsedContainersErrorLogs.equals("")){
+                throw new Exception(squidUsedContainersErrorLogs);
+            }
         }
     }
 
@@ -87,11 +135,49 @@ public class ElasticsearchDockerInitializer {
         return elasticsearchServerHosts;
     }
 
+    protected static void startElasticsearchDocker(EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String dockerNetworkName) throws Exception {
+        execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, dockerNetworkName);
+        String curlElasticsearchCommand = "curl localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_HTTP_PORT);
+        boolean notConnected = true;
+        boolean keepWaitingConnection = true;
+        Integer attemptsToConnect = 1;
+        String errorCurl = "";
+        while (keepWaitingConnection) {
+            Thread.sleep(10000);
+            logger.info("Docker containers initialization. Attempt # " + attemptsToConnect);
+            CommandLogComponents logCurlElasticsearch = runShellCommandWithLogs(curlElasticsearchCommand);
+            attemptsToConnect = attemptsToConnect + 1;
+            String connectionSuccessful = "You Know, for Search";
+            if (logCurlElasticsearch.getLog().contains(connectionSuccessful)) {
+                notConnected = false;
+                keepWaitingConnection = false;
+                logger.info("Elasticsearch docker cluster have started successfully");
+            }
+            errorCurl = addLogIfNotContained(errorCurl, logCurlElasticsearch.getErrorLog(), curlElasticsearchCommand);
+            if (attemptsToConnect > 20) {
+                keepWaitingConnection = false;
+            }
+        }
+        logger.info("Total amount of connection attempts - " + (attemptsToConnect-1) + "\n" + "Containers started successfully - " + !notConnected);
+        if (notConnected) {
+            String errorLog = "Docker network used in elasticsearch & squid containers initialization - " + dockerNetworkName + "\n"
+                    + "The following ip addresses were set for elasticsearch nodes - "
+                    + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200; "
+                    + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200"
+                    + "\nTotal amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed"
+                    + errorCurl
+                    + "\nTip: check if sysctl vm.max_map_count >= 262144";
+            throw new Exception("Connection not successful. The following errors  emerged while starting the containers: \n"
+                    + errorLog
+            );
+        }
+    }
+
     protected static void startElasticsearchSquidDocker(EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts, EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts, String dockerNetworkName) throws Exception {
         execElasticsearchSquidStartScript(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, dockerNetworkName);
         String curlElasticsearchCommand = "curl localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_HTTP_PORT);
-        String curlFromSquidToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
-        String curlFromSquidAuthToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200";
+        String curlFromSquidToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_HTTP_PORT) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
+        String curlFromSquidAuthToElasticsearchCommand = "curl -x localhost:"+ elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_HTTP_PORT) + " " + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200";
         boolean notConnected = true;
         boolean keepWaitingConnection = true;
         Integer attemptsToConnect = 1;
@@ -122,13 +208,12 @@ public class ElasticsearchDockerInitializer {
         }
         logger.info("Total amount of connection attempts - " + (attemptsToConnect-1) + "\n" + "Containers started successfully - " + !notConnected);
         if (notConnected) {
-            String errorLog =
-                    "Docker network used in elasticsearch & squid containers initialization - " + dockerNetworkName + "\n"
+            String errorLog = "Docker network used in elasticsearch & squid containers initialization - " + dockerNetworkName + "\n"
                     + "The following ip addresses were set for elasticsearch nodes - "
                     + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200; "
                     + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_02_IP_ADDRESS) + ":9200"
-                    + "\nThe following ip address was set for squid - " +  "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_SP)
-                    + "\nThe following ip address was set for squid with authentication parameters - " + "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_SP)
+                    + "\nThe following ip address was set for squid - " +  "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_HTTP_PORT)
+                    + "\nThe following ip address was set for squid with authentication parameters - " + "localhost:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_HTTP_PORT)
                     + "\nTotal amount of connection attempts - " + (attemptsToConnect-1) + ". Containers initialization failed"
                     + errorCurl
                     + "\nTip: check if sysctl vm.max_map_count >= 262144";
@@ -187,7 +272,12 @@ public class ElasticsearchDockerInitializer {
 
 
     protected  static void clearElasticsearchSquidDocker() throws Exception {
-        execElasticsearchSquidClearScript();
+        String clearElasticsearchDockerCommand = "nohup sh " + elasticsearchDockerClearScriptPathString + " &";
+        runShellCommandWithLogs(clearElasticsearchDockerCommand);
+        if(squidUsed) {
+            String clearSquidDockerCommand = "nohup sh " + squidDockerClearScriptPathString + " &";
+            runShellCommandWithLogs(clearSquidDockerCommand);
+        }
     }
 
     protected static CommandLogComponents runShellCommandWithLogs(String command) throws Exception {
@@ -237,4 +327,41 @@ public class ElasticsearchDockerInitializer {
         return dockerNetworkSubnet;
     }
 
+    public static void initializeElasticsearchSquidContainers() throws Exception {
+        PreStartDockerNetworkParams dockerNetworkParams = initializeDockerNetwork();
+        dockerNetworkName = dockerNetworkParams.getDockerNetworkName();
+        String dockerNetworkSubnet = dockerNetworkParams.getDockerNetworkSubnet();
+        logger.info("Docker network name - " + dockerNetworkName);
+        logger.info("Docker network subnet - " + dockerNetworkSubnet);
+        dockerNetworkExistedBefore = dockerNetworkParams.isDockerNetworkExistedBefore();
+        EnumMap<ElasticsearchNodesType, String> elasticsearchServerHosts = getFreeHostsOnSubnet(dockerNetworkSubnet);
+        logger.info("Elasticsearch cluster nodes ip addresses");
+        String elasticsearchNodesIps = "";
+        for(Map.Entry<ElasticsearchNodesType, String> entry : elasticsearchServerHosts.entrySet()) {
+            elasticsearchNodesIps = elasticsearchNodesIps + "\n" + entry.getKey() + " - " + entry.getValue();
+        }
+        logger.info("Elasticsearch cluster nodes ip addresses:"+ elasticsearchNodesIps);
+        EnumMap<DockerServicePortType, String> elasticsearchSquidDockerServicesPorts = getElasticsearchSquidFreePorts();
+        esUrl = "http://127.0.0.1:" + elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_HTTP_PORT);
+        esUrlProxy = "http://" + elasticsearchServerHosts.get(ElasticsearchNodesType.ES_NODE_01_IP_ADDRESS) + ":9200";
+        esTcpPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.ES_NIFI_01_TCP_PORT);
+        proxyPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_HTTP_PORT);
+        proxyAuthPort = elasticsearchSquidDockerServicesPorts.get(DockerServicePortType.SQUID_AUTH_HTTP_PORT);
+        clearElasticsearchSquidDocker();
+        if(squidUsed) {
+            startElasticsearchSquidDocker(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, dockerNetworkName);
+        } else {
+            startElasticsearchDocker(elasticsearchSquidDockerServicesPorts, elasticsearchServerHosts, dockerNetworkName);
+        }
+    }
+
+    public static  void clearElasticsearchSquidContainers() throws Exception {
+        logger.info("Waiting for docker containers to stop...");
+        clearElasticsearchSquidDocker();
+        if (!dockerNetworkExistedBefore) {
+            logger.info("Removing es_squid network ...");
+            String closeNetworkCommand = "docker network rm " + dockerNetworkName;
+            runShellCommandWithLogs(closeNetworkCommand);
+        }
+    }
 }
