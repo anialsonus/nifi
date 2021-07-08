@@ -1,4 +1,4 @@
-cluster.name: elasticsearch-cluster
+cluster.name: elasticsearch_brew
 node.name: es-node2
 http.port: 9200
 transport.tcp.port: 9300
