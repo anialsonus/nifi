@@ -62,6 +62,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 * Apache Maven 3.1.1 or newer
 * Git Client (used during build process by 'bower' plugin)
 * Docker 20.10.6 or newer (used during nifi-elasticsearch-processors testing/packaging)
+* Set sysctl variable vm.max_map_count=262144 (required after each server restart)
 ## Getting Started
 
 - Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).

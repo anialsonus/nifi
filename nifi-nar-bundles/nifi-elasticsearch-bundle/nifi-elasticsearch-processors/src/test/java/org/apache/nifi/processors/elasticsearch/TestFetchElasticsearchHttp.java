@@ -16,18 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.HashMap;
-
+import okhttp3.*;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -36,19 +25,19 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.HashMap;
+
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestFetchElasticsearchHttp {
 
@@ -387,67 +376,4 @@ public class TestFetchElasticsearchHttp {
         }
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Integration test section below
-    //
-    // The tests below are meant to run on real ES instances, and are thus @Ignored during normal test execution.
-    // However if you wish to execute them as part of a test phase, comment out the @Ignored line for each
-    // desired test.
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Tests basic ES functionality against a local or test ES cluster
-     */
-
-    @Test
-    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
-    public void testFetchElasticsearchBasicBehindProxy() {
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-        runner.setValidateExpressionUsage(true);
-
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-
-        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3228");
-        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
-    public void testFetchElasticsearchBasicBehindAuthenticatedProxy() {
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-        runner.setValidateExpressionUsage(true);
-
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-
-        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3328");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_USERNAME, "squid");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PASSWORD, "changeme");
-        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
 }
