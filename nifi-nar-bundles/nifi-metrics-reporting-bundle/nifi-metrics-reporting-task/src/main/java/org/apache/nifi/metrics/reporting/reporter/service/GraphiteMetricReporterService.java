@@ -140,6 +140,7 @@ public class GraphiteMetricReporterService extends AbstractControllerService imp
         Charset newCharset = Charset.forName(context.getProperty(CHARSET).getValue());
         checkConfigurationVersion(newHost, newPort, newCharset,context.getProperty(METRIC_NAME_PREFIX).evaluateAttributeExpressions().getValue());
         graphiteSender = createSender(host, port, charset);
+        metricNamePrefix = context.getProperty(METRIC_NAME_PREFIX).evaluateAttributeExpressions().getValue();
     }
 
     private void checkConfigurationVersion(String newHost, int newPort, Charset newCharset,String newMetricNamePrefix) {
