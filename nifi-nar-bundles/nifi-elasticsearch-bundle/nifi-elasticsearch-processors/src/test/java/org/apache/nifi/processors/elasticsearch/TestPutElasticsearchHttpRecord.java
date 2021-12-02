@@ -95,6 +95,7 @@ public class TestPutElasticsearchHttpRecord {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/yyyy h:m a");
         processor.setRecordChecks(record -> {
             assertEquals(1, record.get("id"));
+            assertEquals("user_1", record.get("routing"));
             assertEquals("reç1", record.get("name"));
             assertEquals(101, record.get("code"));
             assertEquals(EXPECTED_DATE, record.get("date"));
@@ -102,6 +103,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(2, record.get("id"));
+            assertEquals("user_2", record.get("routing"));
             assertEquals("reç2", record.get("name"));
             assertEquals(102, record.get("code"));
             assertEquals(EXPECTED_DATE, record.get("date"));
@@ -109,6 +111,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(3, record.get("id"));
+            assertEquals("user_3", record.get("routing"));
             assertEquals("reç3", record.get("name"));
             assertEquals(103, record.get("code"));
             assertEquals(EXPECTED_DATE, record.get("date"));
@@ -116,6 +119,7 @@ public class TestPutElasticsearchHttpRecord {
             assertEquals(LOCAL_DATE_TIME.format(dateTimeFormatter), record.get("ts"));
         }, record -> {
             assertEquals(4, record.get("id"));
+            assertEquals("user_4", record.get("routing"));
             assertEquals("reç4", record.get("name"));
             assertEquals(104, record.get("code"));
             assertEquals(EXPECTED_DATE, record.get("date"));
@@ -129,6 +133,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH,"/routing");
         runner.setProperty(PutElasticsearchHttpRecord.DATE_FORMAT, "d/M/yyyy");
         runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
         runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
@@ -212,6 +217,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.DATE_FORMAT, "d/M/yyyy");
         runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
         runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
@@ -239,6 +245,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -258,6 +265,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -277,6 +285,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -296,6 +305,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -315,6 +325,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
         runner.assertValid();
 
@@ -339,6 +350,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "${no.attr}");
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -380,6 +392,8 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
+
 
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -402,6 +416,8 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
+
 
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "28039652140"));
         runner.run(1, true, true);
@@ -416,6 +432,8 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/none"); // Field does not exist
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
+
 
         runner.enqueue(new byte[0]);
         runner.run(1, true, true);
@@ -485,6 +503,8 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "index");
         runner.assertValid();
@@ -648,6 +668,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH, "/routing");
 
         // Set dynamic property, to be added to the URL as a query parameter
         runner.setProperty("pipeline", "my-pipeline");
@@ -839,67 +860,6 @@ public class TestPutElasticsearchHttpRecord {
     /**
      * Tests basic ES functionality against a local or test ES cluster
      */
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        runner.enqueue("{\"id\": 28039652140}");
-
-        runner.enqueue(new byte[0]);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
-        assertNotNull(provEvents);
-        assertEquals(1, provEvents.size());
-        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            sb.append("{\"id\": ").append(newStrId).append("}\n");
-        }
-        runner.enqueue(sb.toString().getBytes());
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        final String content = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0).getContent();
-        assertEquals(sb.toString(), content);
-    }
 
     @Test(expected = AssertionError.class)
     public void testPutElasticSearchBadHostInEL() {
@@ -909,6 +869,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.ROUTING_RECORD_PATH,"/routing");
         runner.assertValid();
 
         runner.enqueue(new byte[0], Collections.singletonMap("doc_id", "1"));
@@ -932,6 +893,7 @@ public class TestPutElasticsearchHttpRecord {
         runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "parser");
 
         parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("routing", RecordFieldType.STRING);
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("date", RecordFieldType.DATE);
@@ -944,7 +906,7 @@ public class TestPutElasticsearchHttpRecord {
         final Timestamp timestamp = Timestamp.valueOf(LOCAL_DATE_TIME);
         final Time time = Time.valueOf(LOCAL_TIME);
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "reç" + i, 100 + i, date, time, timestamp, new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN), "1000");
+            parser.addRecord(i, "user_" + i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
         }
     }
 

@@ -437,64 +437,6 @@ public class TestFetchElasticsearchHttp {
      * Tests basic ES functionality against a local or test ES cluster
      */
     @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testFetchElasticsearchBasic() throws IOException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-
-        // add data to ES instance
-        new OkHttpClient.Builder().build().newCall(
-                new Request.Builder().url("http://127.0.0.1:9200/doc/_doc/28039652140")
-                        .addHeader("Content-Type", "application/json")
-                        .put(
-                                RequestBody.create(MediaType.get("application/json"),
-                                        IOUtils.toString(docExample, StandardCharsets.UTF_8))
-                        ).build()
-        ).execute();
-
-        //Local Cluster - Mac pulled from brew
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.removeProperty(FetchElasticsearchHttp.TYPE);
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
-    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
-    public void testFetchElasticsearchBasicBehindProxy() {
-        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
-        runner.setValidateExpressionUsage(true);
-
-        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
-
-        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
-        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3228");
-        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
-
-        runner.assertValid();
-
-        runner.enqueue(docExample, new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
-
-        runner.enqueue(docExample);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
-    }
-
-    @Test
     @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
     public void testFetchElasticsearchBasicBehindAuthenticatedProxy() {
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
