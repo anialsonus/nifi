@@ -130,6 +130,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private String rootGroupId;
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
+    private boolean anonymousAccessEnabled;
     private Set<String> nodeIdentities;
     private String nodeGroupIdentifier;
     private List<PortDTO> ports = new ArrayList<>();
@@ -214,6 +215,10 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             // get the value of the legacy authorized users file
             final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
             legacyAuthorizedUsersFile = legacyAuthorizedUsersProp.isSet() ? legacyAuthorizedUsersProp.getValue() : null;
+
+            // get anonymous access enable property
+            final PropertyValue anonymousAccessEnableProp = configurationContext.getProperty(FileAuthorizer.PROP_ANONYMOUS_ACCESS_ENABLE);
+            anonymousAccessEnabled = anonymousAccessEnableProp.isSet() ? anonymousAccessEnableProp.asBoolean() : false;
 
             // extract any node identities
             nodeIdentities = new HashSet<>();
