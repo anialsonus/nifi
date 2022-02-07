@@ -41,8 +41,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
 
-    static final String PROP_ANONYMOUS_ACCESS_ENABLE = "nifi.security.allow.anonymous.authentication";
-
     private FileUserGroupProvider userGroupProvider = new FileUserGroupProvider();
     private FileAccessPolicyProvider accessPolicyProvider = new FileAccessPolicyProvider();
 
