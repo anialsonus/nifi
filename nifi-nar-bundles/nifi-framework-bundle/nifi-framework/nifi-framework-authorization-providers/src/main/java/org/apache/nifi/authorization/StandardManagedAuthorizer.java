@@ -40,6 +40,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class StandardManagedAuthorizer implements ManagedAuthorizer {
@@ -51,6 +52,8 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     private AccessPolicyProviderLookup accessPolicyProviderLookup;
     private AccessPolicyProvider accessPolicyProvider;
     private UserGroupProvider userGroupProvider;
+
+    private boolean allowAnonymousAccess;
 
     @Override
     public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
@@ -77,20 +80,27 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         if (userGroupProvider == null) {
             throw new AuthorizerCreationException(String.format("Configured Access Policy Provider %s does not contain a User Group Provider", accessPolicyProviderKey));
         }
+
+        final PropertyValue allowAnonymousAccessKey = configurationContext.getProperty("Allow Anonymous Access");
+        if (Objects.nonNull(allowAnonymousAccessKey) && allowAnonymousAccessKey.isSet()) {
+            allowAnonymousAccess = allowAnonymousAccessKey.asBoolean();
+        } else {
+            allowAnonymousAccess = false;
+        }
     }
 
     @Override
     public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
         final String resourceIdentifier = request.getResource().getIdentifier();
         final AccessPolicy policy = accessPolicyProvider.getAccessPolicy(resourceIdentifier, request.getAction());
-        if (policy == null) {
+        if (policy == null && !allowAnonymousAccess) {
             return AuthorizationResult.resourceNotFound();
         }
 
         final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(request.getIdentity());
 
         final User user = userAndGroups.getUser();
-        if (user == null) {
+        if (user == null && !allowAnonymousAccess) {
             return AuthorizationResult.denied(String.format("Unknown user with identity '%s'.", request.getIdentity()));
         }
 
@@ -103,6 +113,14 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         final Set<Group> allGroups = new HashSet<>();
         allGroups.addAll(userGroups == null ? Collections.emptySet() : userGroups);
         allGroups.addAll(requestGroups == null ? Collections.emptySet() : requestGroups);
+
+        if (Objects.isNull(policy) || Objects.isNull(user)) {
+            if (allowAnonymousAccess) {
+                return AuthorizationResult.approved();
+            } else {
+                return AuthorizationResult.resourceNotFound();
+            }
+        }
 
         if (policy.getUsers().contains(user.getIdentifier()) || containsGroup(allGroups, policy)) {
             return AuthorizationResult.approved();
