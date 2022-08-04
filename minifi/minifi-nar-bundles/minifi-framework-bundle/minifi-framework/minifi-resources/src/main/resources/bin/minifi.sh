@@ -264,7 +264,10 @@ run() {
     else
         if [ -n "${run_as}" ]; then
             if id -u "${run_as}" >/dev/null 2>&1; then
-                sudo_cmd_prefix="sudo -u ${run_as}"
+                # We are using /bin/su instead of sudo, because some OSes lacks proper sudo settings.
+                # If you still want to use sudo, you can use it something like "sudo -- -s /bin/sh -c"
+                # extra /bin/sh argument required because sudo itself can't deal with a quoted command argument in a proper way
+                sudo_cmd_prefix="/bin/su ${run_as} -s /bin/sh -c"
             else
                 echo "The specified run.as user ${run_as} does not exist. Exiting."
                 exit 1
@@ -292,14 +295,20 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    RUN_MINIFI_CMD="cd "\""${MINIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.minifi.bootstrap.RunMiNiFi"
+    RUN_MINIFI_CMD_PREFIX="cd "\""${MINIFI_HOME}"\"" && ${sudo_cmd_prefix}"
+    if [ -n "${run_as}" ]; then
+      # /bin/su requires quoted command argument
+      RUN_MINIFI_CMD=\"""\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.minifi.bootstrap.RunMiNiFi $@"\"
+    else
+      RUN_MINIFI_CMD=""\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.minifi.bootstrap.RunMiNiFi $@"
+    fi
 
     # run 'start' in the background because the process will continue to run, monitoring MiNiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (eval $RUN_MINIFI_CMD $@ &)
+        (eval $RUN_MINIFI_CMD_PREFIX $RUN_MINIFI_CMD &)
     else
-        (eval $RUN_MINIFI_CMD $@)
+        (eval $RUN_MINIFI_CMD_PREFIX $RUN_MINIFI_CMD)
     fi
     EXIT_STATUS=$?
 
