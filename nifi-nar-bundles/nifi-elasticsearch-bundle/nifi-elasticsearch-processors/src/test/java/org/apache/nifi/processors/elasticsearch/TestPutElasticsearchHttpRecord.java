@@ -25,14 +25,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -40,7 +37,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -906,7 +902,8 @@ public class TestPutElasticsearchHttpRecord {
         final Timestamp timestamp = Timestamp.valueOf(LOCAL_DATE_TIME);
         final Time time = Time.valueOf(LOCAL_TIME);
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "user_" + i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
+            parser.addRecord(i, "user_" + i, "reç" + i, 100 + i, new Date(1545282000000L),
+                    new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
         }
     }
 
