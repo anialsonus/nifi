@@ -45,6 +45,9 @@ SCRIPT_DIR=$PHYS_DIR
 SCRIPT_NAME=$(basename "$0")
 PROGNAME=$(basename "$0")
 
+# bigtop java discovery
+. /usr/lib/bigtop-utils/bigtop-detect-javahome
+
 . "$SCRIPT_DIR"/minifi-env.sh
 
 

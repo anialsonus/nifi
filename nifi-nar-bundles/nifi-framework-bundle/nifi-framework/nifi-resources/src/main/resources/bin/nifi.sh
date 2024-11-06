@@ -43,6 +43,9 @@ PHYS_DIR=$(pwd -P)
 SCRIPT_DIR=$PHYS_DIR
 PROGNAME=$(basename "$0")
 
+# bigtop java discovery
+. /usr/lib/bigtop-utils/bigtop-detect-javahome
+
 . "${SCRIPT_DIR}/nifi-env.sh"
 
 
